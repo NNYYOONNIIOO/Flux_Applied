@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "mode=0": { "model": "flux_applied:energy_port_input" },
+    "mode=1": { "model": "flux_applied:energy_port_output" },
+    "mode=2": { "model": "flux_applied:energy_port" }
+  }
+}

@@ -1,0 +1,14 @@
+[{
+  "modid": "flux_applied",
+  "name": "Flux Applied",
+  "description": "通量应用 - Allows storing RF/FE energy in AE2 storage cells",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["XK"],
+  "credits": "Thanks to the Applied Energistics 2 and Forge authors",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": ["appliedenergistics2", "terminal_interaction_integration"]
+}]
