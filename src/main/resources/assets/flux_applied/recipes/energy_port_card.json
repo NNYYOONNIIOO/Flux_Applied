@@ -1,0 +1,13 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "ingredients": [
+        { "item": "appliedenergistics2:material", "data": 28 },
+        [
+            { "item": "flux_applied:energy_port" },
+            { "item": "flux_applied:part_energy_provider" }
+        ]
+    ],
+    "result": {
+        "item": "flux_applied:energy_port_card"
+    }
+}

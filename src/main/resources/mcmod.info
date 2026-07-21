@@ -1,0 +1,14 @@
+[{
+  "modid": "flux_applied",
+  "name": "Flux Applied",
+  "description": "Allows storing FE energy in AE2 storage cells",
+  "version": "1.2.1,
+  "mcversion": "1.12.2",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["Nyonio"],
+  "credits": "Thanks to the Applied Energistics 2 and Forge authors",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": ["appliedenergistics2", "terminal_interaction_integration"]
+}]

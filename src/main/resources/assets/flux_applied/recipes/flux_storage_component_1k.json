@@ -1,0 +1,17 @@
+{
+    
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "aba",
+        "bcb",
+        "aba"
+    ],
+    "key": {
+        "a": { "item": "minecraft:blaze_powder" },
+        "b": { "type": "forge:ore_dict", "ore": "crystalCertusQuartz" },
+        "c": { "item": "appliedenergistics2:material", "data": 22 }
+    },
+    "result": {
+        "item": "flux_applied:flux_storage_component_1k"
+    }
+}

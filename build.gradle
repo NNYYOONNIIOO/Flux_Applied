@@ -1,0 +1,110 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net/' }
+        mavenCentral()
+        maven { url = 'https://cursemaven.com' }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:3.+'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+
+repositories {
+    maven { url = 'https://cursemaven.com' }
+    maven { url = 'https://maven.cleanroommc.com' }
+    maven { url = 'https://repo.spongepowered.org/maven' }
+    maven { url = 'https://maven.tterrag.com/' }
+    maven { url = "https://maven.k-4u.nl/" }
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+version = '1.2.1'
+group = 'com.flux_applied'
+archivesBaseName = 'flux_applied'
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
+
+sourceSets {
+    api
+}
+
+sourceSets.main.compileClasspath += sourceSets.api.output
+sourceSets.main.runtimeClasspath += sourceSets.api.output
+
+minecraft {
+    mappings channel: 'snapshot', version: '20171003-1.12'
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
+        }
+
+        server {
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            property 'forge.logging.console.level', 'debug'
+        }
+    }
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2859'
+
+    implementation fg.deobf("curse.maven:ae2-extended-life-570458:6302098")
+
+    compileOnly fg.deobf("curse.maven:the-one-probe-community-edition-885670:7718301")
+
+    compileOnly files('libs/industrialcraft-2-2.8.222-ex112.jar')
+
+    compileOnly fg.deobf("curse.maven:ae2-fluid-crafting-rework-623955:5751930")
+    compileOnly fg.deobf("curse.maven:mekanism-energistics-1027681:5775101")
+    implementation fg.deobf("curse.maven:mekanismceu-ae-upgrade-1606943:8416019")
+
+    implementation files('libs/terminal_interaction_integration-1.0.jar')
+
+    // Mixin support
+    implementation ('zone.rong:mixinbooter:10.7') { transitive = false }
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+
+jar {
+    manifest {
+        attributes([
+            "Specification-Title": "flux_applied",
+            "Specification-Vendor": "xk",
+            "Specification-Version": "1",
+            "Implementation-Title": project.name,
+            "Implementation-Version": "${version}",
+            "Implementation-Vendor" :"xk",
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            "MixinConfigs": "flux_applied.mixins.json",
+        ])
+    }
+}
+
+jar.finalizedBy('reobfJar') 
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file:///${project.projectDir}/mcmodsrepo"
+        }
+    }
+}

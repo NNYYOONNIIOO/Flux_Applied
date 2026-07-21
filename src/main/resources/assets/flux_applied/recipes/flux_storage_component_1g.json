@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "ada",
+        "efe",
+        "aea"
+    ],
+    "key": {
+        "a": { "item": "minecraft:blaze_powder" },
+        "d": { "item": "appliedenergistics2:material", "data": 23 },
+        "e": { "item": "flux_applied:flux_storage_component_256m" },
+        "f": { "item": "appliedenergistics2:quartz_glass" }
+    },
+    "result": {
+        "item": "flux_applied:flux_storage_component_1g"
+    }
+}

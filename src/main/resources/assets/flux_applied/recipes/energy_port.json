@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "aea",
+        "efe",
+        "aea"
+    ],
+    "key": {
+        "a": { "item": "minecraft:blaze_powder" },
+        "e": { "item": "appliedenergistics2:material", "data": 9 },
+        "f": { "item": "appliedenergistics2:energy_acceptor" }
+    },
+    "result": {
+        "item": "flux_applied:energy_port"
+    }
+}

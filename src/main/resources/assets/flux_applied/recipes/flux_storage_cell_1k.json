@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "qrq",
+        "rcr",
+        "iii"
+    ],
+    "key": {
+        "q": { "item": "appliedenergistics2:quartz_glass" },
+        "r": { "item": "minecraft:redstone" },
+        "c": { "item": "flux_applied:flux_storage_component_1k" },
+        "i": { "item": "minecraft:iron_ingot" }
+    },
+    "result": {
+        "item": "flux_applied:flux_storage_cell_1k"
+    }
+}

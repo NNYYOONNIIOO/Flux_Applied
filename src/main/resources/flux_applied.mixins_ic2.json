@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.flux_applied.mixin",
+  "refmap": "flux_applied.mixins.refmap.json",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinTileEntityEnergyProvider"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
