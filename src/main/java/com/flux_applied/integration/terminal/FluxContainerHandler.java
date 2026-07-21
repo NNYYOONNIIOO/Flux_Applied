@@ -7,6 +7,8 @@ import net.minecraftforge.energy.IEnergyStorage;
 import nyonio.terminal_interaction_integration.api.IContainerHandler;
 
 public class FluxContainerHandler implements IContainerHandler {
+
+    private static final int MAX_ENERGY_PER_CALL = Integer.MAX_VALUE;
     
     @Override
     public boolean canHandle(ItemStack container) {
@@ -33,42 +35,49 @@ public class FluxContainerHandler implements IContainerHandler {
     
     @Override
     public long extract(ItemStack container, long amount, IActionSource source) {
-        if (container.isEmpty() || !container.hasCapability(CapabilityEnergy.ENERGY, null)) {
+        if (amount <= 0 || container.isEmpty() || !container.hasCapability(CapabilityEnergy.ENERGY, null)) {
             return 0;
         }
         
         IEnergyStorage energyStorage = container.getCapability(CapabilityEnergy.ENERGY, null);
-        int currentFE = energyStorage.getEnergyStored();
-        
-        if (currentFE <= 0) {
+        if (energyStorage == null || !energyStorage.canExtract()) {
             return 0;
         }
-        
-        int toExtract = (int) Math.min(amount, currentFE);
-        int extracted = energyStorage.extractEnergy(toExtract, false);
-        
-        return extracted;
+
+        return transferUntilBlocked(amount, energyStorage, false);
     }
     
     @Override
     public long inject(ItemStack container, long amount, IActionSource source) {
-        if (container.isEmpty() || !container.hasCapability(CapabilityEnergy.ENERGY, null)) {
+        if (amount <= 0 || container.isEmpty() || !container.hasCapability(CapabilityEnergy.ENERGY, null)) {
             return 0;
         }
         
         IEnergyStorage energyStorage = container.getCapability(CapabilityEnergy.ENERGY, null);
-        int currentFE = energyStorage.getEnergyStored();
-        int maxFE = energyStorage.getMaxEnergyStored();
-        int space = maxFE - currentFE;
-        
-        if (space <= 0) {
+        if (energyStorage == null || !energyStorage.canReceive()) {
             return 0;
         }
-        
-        int toInject = (int) Math.min(amount, space);
-        int injected = energyStorage.receiveEnergy(toInject, false);
-        
-        return injected;
+
+        return transferUntilBlocked(amount, energyStorage, true);
+    }
+
+    private long transferUntilBlocked(long amount, IEnergyStorage energyStorage, boolean receive) {
+        long transferred = 0;
+
+        while (transferred < amount) {
+            int request = (int) Math.min(amount - transferred, (long) MAX_ENERGY_PER_CALL);
+            int moved = receive
+                    ? energyStorage.receiveEnergy(request, false)
+                    : energyStorage.extractEnergy(request, false);
+
+            if (moved <= 0) {
+                break;
+            }
+
+            transferred += Math.min(moved, request);
+        }
+
+        return transferred;
     }
     
     @Override
