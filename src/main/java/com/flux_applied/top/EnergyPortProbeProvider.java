@@ -8,7 +8,9 @@ import appeng.me.GridAccessException;
 import com.flux_applied.FluxApplied;
 import com.flux_applied.block.BlockEnergyPort;
 import com.flux_applied.item.ItemProviderCard;
+import com.flux_applied.part.PartEnergyImportBus;
 import com.flux_applied.part.PartEnergyProvider;
+import com.flux_applied.part.PartEnergyStorageBus;
 import com.flux_applied.tile.TileEntityEnergyProvider;
 import com.flux_applied.util.ProviderCardHelper;
 import mcjty.theoneprobe.api.IProbeHitData;
@@ -79,6 +81,12 @@ public class EnergyPortProbeProvider implements IProbeInfoProvider {
                                         .numberFormat(NumberFormat.COMPACT));
                         probeInfo.text("{*flux_applied.top.mode*}: " + getModeText(cardMode));
                     }
+                } else if (hitPart instanceof PartEnergyStorageBus) {
+                    PartEnergyStorageBus storageBus = (PartEnergyStorageBus) hitPart;
+                    probeInfo.text("{*flux_applied.top.mode*}: " + getModeText(storageBus.getMode()));
+                } else if (hitPart instanceof PartEnergyImportBus) {
+                    PartEnergyImportBus importBus = (PartEnergyImportBus) hitPart;
+                    probeInfo.text("{*flux_applied.top.transfer_rate*}: " + importBus.getTransferRate() + " FE/t");
                 }
             }
         }

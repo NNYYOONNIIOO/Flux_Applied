@@ -30,6 +30,7 @@ import com.flux_applied.item.ItemProviderCard;
 import com.flux_applied.part.ItemPartEnergyProvider;
 import com.flux_applied.part.PartEnergyProvider;
 import com.flux_applied.part.ItemPartEnergyStorageBus;
+import com.flux_applied.part.ItemPartEnergyImportBus;
 import com.flux_applied.tile.TileEntityEnergyProvider;
 import com.flux_applied.ae2.FluxStorageChannel;
 import com.flux_applied.ae2.FluxCellHandler;
@@ -102,6 +103,8 @@ public class FluxApplied implements ILateMixinLoader
 
     public static ItemPartEnergyStorageBus energyStorageBus;
 
+    public static ItemPartEnergyImportBus energyImportBus;
+
     public static ItemProviderCard providerCard;
 
     @EventHandler
@@ -156,6 +159,8 @@ public class FluxApplied implements ILateMixinLoader
 
         energyStorageBus = new ItemPartEnergyStorageBus();
 
+        energyImportBus = new ItemPartEnergyImportBus();
+
         providerCard = new ItemProviderCard();
         UpgradeModuleRegistration.register(providerCard, 1);
 
@@ -166,7 +171,10 @@ public class FluxApplied implements ILateMixinLoader
             new ResourceLocation(MODID, "part/energy_provider"),
             new ResourceLocation(MODID, "part/energy_provider_input"),
             new ResourceLocation(MODID, "part/energy_provider_output"),
-            new ResourceLocation(MODID, "part/energy_storage_bus")
+            new ResourceLocation(MODID, "part/energy_storage_bus"),
+            new ResourceLocation(MODID, "part/energy_import_bus"),
+            new ResourceLocation(MODID, "part/energy_import_bus_off"),
+            new ResourceLocation(MODID, "part/energy_import_bus_has_channel")
         );
     }
 
@@ -313,6 +321,7 @@ public class FluxApplied implements ILateMixinLoader
         event.getRegistry().register(energyPortItem);
         event.getRegistry().register(partEnergyProvider);
         event.getRegistry().register(energyStorageBus);
+        event.getRegistry().register(energyImportBus);
         event.getRegistry().register(providerCard);
     }
 

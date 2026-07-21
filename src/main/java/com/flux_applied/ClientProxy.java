@@ -63,6 +63,7 @@ public class ClientProxy extends CommonProxy
         registerItemModel(FluxApplied.fluxPacket, 0, "flux_packet");
         registerItemModel(FluxApplied.partEnergyProvider, 0, "part_energy_provider");
         registerItemModel(FluxApplied.energyStorageBus, 0, "energy_storage_bus");
+        registerItemModel(FluxApplied.energyImportBus, 0, "energy_import_bus");
         registerItemModel(FluxApplied.providerCard, 0, "energy_port_card");
     }
     

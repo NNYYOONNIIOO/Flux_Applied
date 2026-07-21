@@ -17,6 +17,10 @@ public class ModConfig {
     @Config.Comment("Energy transfer settings")
     public static final Energy ENERGY = new Energy();
 
+    @Config.Name("Energy Import Bus")
+    @Config.Comment("Energy Import Bus transfer settings")
+    public static final EnergyImportBus ENERGY_IMPORT_BUS = new EnergyImportBus();
+
     @Config.Name("Integration")
     @Config.Comment("Compatibility integrations")
     public static final Integration INTEGRATION = new Integration();
@@ -25,6 +29,24 @@ public class ModConfig {
         @Config.Name("Energy Port Transfer Rate")
         @Config.Comment("Maximum FE transferred by an Energy Port Card per tick")
         public String energyPortTransferRate = String.valueOf(Integer.MAX_VALUE);
+    }
+
+    public static class EnergyImportBus {
+        @Config.Name("Maximum Input Extract Rate")
+        @Config.Comment("Maximum FE extracted by an Energy Import Bus per tick; supports values up to Long.MAX_VALUE")
+        public String maximumInputExtractRate = String.valueOf(Integer.MAX_VALUE);
+
+        @Config.Name("Enable Rate Growth")
+        @Config.Comment("Allow the active Energy Import Bus transfer rate to grow over time")
+        public boolean enableRateGrowth = true;
+
+        @Config.Name("Rate Growth Per Tick")
+        @Config.Comment("FE/t added to an active Energy Import Bus transfer rate each tick")
+        public String rateGrowthPerTick = "40";
+
+        @Config.Name("Initial Input Extract Rate")
+        @Config.Comment("Initial FE/t for a newly placed Energy Import Bus")
+        public String initialInputExtractRate = "40";
     }
 
     public static class Integration {
@@ -55,6 +77,23 @@ public class ModConfig {
 
     public static long getMekanismCeuAeUpgradeExtractRate() {
         return parsePositiveLong(INTEGRATION.mekanismCeuAeUpgradeExtractRate, 128000L);
+    }
+
+    public static long getEnergyImportBusMaximumInputExtractRate() {
+        return parsePositiveLong(ENERGY_IMPORT_BUS.maximumInputExtractRate, Integer.MAX_VALUE);
+    }
+
+    public static boolean isEnergyImportBusRateGrowthEnabled() {
+        return ENERGY_IMPORT_BUS.enableRateGrowth;
+    }
+
+    public static long getEnergyImportBusRateGrowthPerTick() {
+        return parsePositiveLong(ENERGY_IMPORT_BUS.rateGrowthPerTick, 40L);
+    }
+
+    public static long getEnergyImportBusInitialInputExtractRate() {
+        long maximum = getEnergyImportBusMaximumInputExtractRate();
+        return Math.min(parsePositiveLong(ENERGY_IMPORT_BUS.initialInputExtractRate, 40L), maximum);
     }
 
     private static long parsePositiveLong(String value, long fallback) {

@@ -1,0 +1,15 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "ingredients": [
+        {"item": "minecraft:sticky_piston"},
+        [
+            {"item": "flux_applied:energy_port"},
+            {"item": "flux_applied:part_energy_provider"}
+        ],
+        {"item": "minecraft:piston"}
+    ],
+    "result": {
+        "item": "flux_applied:energy_storage_bus",
+        "count": 1
+    }
+}

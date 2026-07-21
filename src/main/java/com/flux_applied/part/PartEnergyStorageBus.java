@@ -19,6 +19,7 @@ import appeng.api.util.AEPartLocation;
 import appeng.me.GridAccessException;
 import appeng.parts.PartBasicState;
 import appeng.parts.PartModel;
+import appeng.util.SettingsFrom;
 import com.flux_applied.FluxApplied;
 import com.flux_applied.ae2.FluxStack;
 import com.flux_applied.ae2.FluxStorageChannel;
@@ -97,6 +98,28 @@ public class PartEnergyStorageBus extends PartBasicState implements IGridTickabl
         }
     }
 
+    @Override
+    protected NBTTagCompound downloadSettings(SettingsFrom from, NBTTagCompound output) {
+        super.downloadSettings(from, output);
+        output.setInteger("Mode", mode);
+        return output;
+    }
+
+    @Override
+    public void uploadSettings(SettingsFrom from, NBTTagCompound compound, EntityPlayer player) {
+        super.uploadSettings(from, compound, player);
+        if (compound.hasKey("Mode")) {
+            mode = compound.getInteger("Mode");
+            if (mode < MODE_INPUT || mode > MODE_BIDIRECTIONAL) {
+                mode = MODE_BIDIRECTIONAL;
+            }
+            lastReportedEnergy = -1L;
+            getHost().markForSave();
+            getHost().markForUpdate();
+            notifyCellArrayUpdate();
+        }
+    }
+
     @Nonnull
     @Override
     public IPartModel getStaticModels() {
@@ -132,6 +155,10 @@ public class PartEnergyStorageBus extends PartBasicState implements IGridTickabl
             default:
                 return "flux_applied.message.storage_bus_bidirectional";
         }
+    }
+
+    public int getMode() {
+        return mode;
     }
 
     @Nonnull

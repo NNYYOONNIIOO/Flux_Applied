@@ -1,0 +1,18 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "   ",
+        "aba",
+        "cdc"
+    ],
+    "key": {
+        "a": {"type": "forge:ore_dict", "ore": "powderBlaze"},
+        "b": {"item": "appliedenergistics2:material", "data": 44},
+        "c": {"type": "forge:ore_dict", "ore": "ingotIron"},
+        "d": {"item": "minecraft:sticky_piston"}
+    },
+    "result": {
+        "item": "flux_applied:energy_import_bus",
+        "count": 1
+    }
+}
