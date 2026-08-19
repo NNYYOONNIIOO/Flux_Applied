@@ -29,11 +29,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import com.flux_applied.ae2.FluxStack;
 import com.flux_applied.ae2.FluxStorageChannel;
+import com.flux_applied.ModConfig;
+import com.flux_applied.util.EnergyTransferHelper;
 
 public class TileEntityEnergyProvider extends TileEntity implements ITickable, IEnergyStorage, IGridProxyable, IActionHost
 {
     public static final long MAX_ENERGY = Long.MAX_VALUE;
-    public static final int DEFAULT_MAX_TRANSFER = Integer.MAX_VALUE;
+    public static final long DEFAULT_MAX_TRANSFER = ModConfig.getEnergyPortTransferRate();
 
     private long energy = 0L;
     private int mode = 2; // 0=input only, 1=output only, 2=bidirectional (default)
@@ -234,8 +236,8 @@ public class TileEntityEnergyProvider extends TileEntity implements ITickable, I
         mode = compound.getInteger("Mode");
         isNetworkConnected = compound.getBoolean("NetworkConnected");
         maxTransfer = compound.getLong("MaxTransfer");
-        if (maxTransfer <= 0) {
-            maxTransfer = DEFAULT_MAX_TRANSFER;
+        if (maxTransfer <= 0 || maxTransfer == Integer.MAX_VALUE) {
+            maxTransfer = ModConfig.getEnergyPortTransferRate();
         }
         this.getProxy().readFromNBT(compound);
     }
@@ -484,8 +486,8 @@ public class TileEntityEnergyProvider extends TileEntity implements ITickable, I
             if (neighbor != null && neighbor.hasCapability(CapabilityEnergy.ENERGY, facing.getOpposite())) {
                 IEnergyStorage storage = neighbor.getCapability(CapabilityEnergy.ENERGY, facing.getOpposite());
                 if (storage != null && storage.canReceive()) {
-                    int toTransfer = (int) Math.min(networkEnergy, maxTransfer);
-                    int received = storage.receiveEnergy(toTransfer, false);
+                    long toTransfer = Math.min(networkEnergy, maxTransfer);
+                    long received = EnergyTransferHelper.receive(storage, toTransfer);
 
                     if (received > 0) {
                         extractEnergyFromNetwork(received);

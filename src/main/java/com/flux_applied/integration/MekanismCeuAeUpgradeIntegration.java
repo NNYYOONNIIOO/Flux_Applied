@@ -9,6 +9,7 @@ import appeng.me.helpers.MachineSource;
 import com.flux_applied.ModConfig;
 import com.flux_applied.ae2.FluxStack;
 import com.flux_applied.ae2.FluxStorageChannel;
+import com.flux_applied.util.EnergyTransferHelper;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.energy.CapabilityEnergy;
@@ -23,18 +24,21 @@ public class MekanismCeuAeUpgradeIntegration {
 
     private static final String UPGRADE_HOST = "mekceuaeupgrade.common.host.IAEUpgradeHost";
     private static final int SLEEP_TICKS = 100;
+    private static final long UPGRADE_CACHE_TICKS = 20L;
     private final Map<TileEntity, Long> nextQuery = new IdentityHashMap<>();
+    private final Map<TileEntity, UpgradeCache> upgradeCache = new IdentityHashMap<>();
     private Method hasAEUpgrade;
     private boolean initialized;
+    private boolean integrationChecked;
+    private boolean integrationAvailable;
 
     public void onWorldTick(TickEvent.WorldTickEvent event) {
         if (event.side.isClient() || event.phase != TickEvent.Phase.END || !ModConfig.INTEGRATION.enableMekanismCeuAeUpgrade) return;
-        if (!Loader.isModLoaded("mekceuaeupgrade")) return;
-        if (!initialized && !initReflection()) return;
+        if (!isIntegrationAvailable()) return;
 
         long now = event.world.getTotalWorldTime();
         for (TileEntity tile : event.world.loadedTileEntityList) {
-            if (tile == null || tile.isInvalid() || !(tile instanceof IActionHost) || !hasUpgrade(tile)) continue;
+            if (tile == null || tile.isInvalid() || !(tile instanceof IActionHost) || !hasUpgrade(tile, now)) continue;
             IEnergyStorage energy = findEnergy(tile);
             if (energy == null || energy.getEnergyStored() >= energy.getMaxEnergyStored()) continue;
 
@@ -47,6 +51,15 @@ public class MekanismCeuAeUpgradeIntegration {
             else nextQuery.remove(tile);
         }
         nextQuery.keySet().removeIf(tile -> tile.isInvalid() || tile.getWorld() != event.world);
+        upgradeCache.keySet().removeIf(tile -> tile.isInvalid() || tile.getWorld() != event.world);
+    }
+
+    private boolean isIntegrationAvailable() {
+        if (!integrationChecked) {
+            integrationChecked = true;
+            integrationAvailable = Loader.isModLoaded("mekceuaeupgrade") && initReflection();
+        }
+        return integrationAvailable;
     }
 
     private boolean initReflection() {
@@ -59,11 +72,29 @@ public class MekanismCeuAeUpgradeIntegration {
         }
     }
 
-    private boolean hasUpgrade(TileEntity tile) {
+    private boolean hasUpgrade(TileEntity tile, long now) {
+        UpgradeCache cached = upgradeCache.get(tile);
+        if (cached != null && now < cached.nextCheck) {
+            return cached.hasUpgrade;
+        }
+
+        boolean result;
         try {
-            return (Boolean) hasAEUpgrade.invoke(tile);
+            result = (Boolean) hasAEUpgrade.invoke(tile);
         } catch (Exception ignored) {
-            return false;
+            result = false;
+        }
+        upgradeCache.put(tile, new UpgradeCache(result, now + UPGRADE_CACHE_TICKS));
+        return result;
+    }
+
+    private static final class UpgradeCache {
+        private final boolean hasUpgrade;
+        private final long nextCheck;
+
+        private UpgradeCache(boolean hasUpgrade, long nextCheck) {
+            this.hasUpgrade = hasUpgrade;
+            this.nextCheck = nextCheck;
         }
     }
 
@@ -90,20 +121,22 @@ public class MekanismCeuAeUpgradeIntegration {
             long request = Math.min(limit, Math.max(0, capacity));
             if (request <= 0) return 0;
 
-            int accepted = machine.receiveEnergy((int) Math.min(request, Integer.MAX_VALUE), true);
-            if (accepted <= 0) return 0;
-
             MachineSource source = new MachineSource(host);
             FluxStack simulated = storage.getInventory(FluxStorageChannel.INSTANCE)
-                    .extractItems(new FluxStack(accepted), Actionable.SIMULATE, source);
-            long available = simulated == null ? 0 : Math.min(accepted, simulated.getStackSize());
+                    .extractItems(new FluxStack(request), Actionable.SIMULATE, source);
+            long available = simulated == null ? 0 : Math.min(request, simulated.getStackSize());
             if (available <= 0) return 0;
 
             FluxStack extracted = storage.getInventory(FluxStorageChannel.INSTANCE)
                     .extractItems(new FluxStack(available), Actionable.MODULATE, source);
             long actual = extracted == null ? 0 : extracted.getStackSize();
             if (actual <= 0) return 0;
-            return machine.receiveEnergy((int) Math.min(actual, Integer.MAX_VALUE), false);
+            long received = EnergyTransferHelper.receive(machine, actual);
+            if (received < actual) {
+                storage.getInventory(FluxStorageChannel.INSTANCE)
+                        .injectItems(new FluxStack(actual - received), Actionable.MODULATE, source);
+            }
+            return received;
         } catch (RuntimeException ignored) {
             return 0;
         }

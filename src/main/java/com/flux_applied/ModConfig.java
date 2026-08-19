@@ -28,13 +28,13 @@ public class ModConfig {
     public static class Energy {
         @Config.Name("Energy Port Transfer Rate")
         @Config.Comment("Maximum FE transferred by an Energy Port Card per tick")
-        public String energyPortTransferRate = String.valueOf(Integer.MAX_VALUE);
+        public String energyPortTransferRate = String.valueOf(Long.MAX_VALUE);
     }
 
     public static class EnergyImportBus {
         @Config.Name("Maximum Input Extract Rate")
         @Config.Comment("Maximum FE extracted by an Energy Import Bus per tick; supports values up to Long.MAX_VALUE")
-        public String maximumInputExtractRate = String.valueOf(Integer.MAX_VALUE);
+        public String maximumInputExtractRate = String.valueOf(Long.MAX_VALUE);
 
         @Config.Name("Enable Rate Growth")
         @Config.Comment("Allow the active Energy Import Bus transfer rate to grow over time")
@@ -72,7 +72,7 @@ public class ModConfig {
     }
     
     public static long getEnergyPortTransferRate() {
-        return parsePositiveLong(ENERGY.energyPortTransferRate, Integer.MAX_VALUE);
+        return parsePositiveLong(ENERGY.energyPortTransferRate, Long.MAX_VALUE);
     }
 
     public static long getMekanismCeuAeUpgradeExtractRate() {
@@ -80,7 +80,7 @@ public class ModConfig {
     }
 
     public static long getEnergyImportBusMaximumInputExtractRate() {
-        return parsePositiveLong(ENERGY_IMPORT_BUS.maximumInputExtractRate, Integer.MAX_VALUE);
+        return parsePositiveLong(ENERGY_IMPORT_BUS.maximumInputExtractRate, Long.MAX_VALUE);
     }
 
     public static boolean isEnergyImportBusRateGrowthEnabled() {

@@ -198,9 +198,6 @@ public class PartEnergyImportBus extends PartBasicState implements IGridTickable
                 }
                 remaining -= extracted;
 
-                if (extracted < insertable) {
-                    break;
-                }
             }
             return worked;
         } catch (GridAccessException ignored) {

@@ -18,8 +18,10 @@ import appeng.me.helpers.MachineSource;
 import appeng.parts.PartBasicState;
 import appeng.parts.PartModel;
 import com.flux_applied.FluxApplied;
+import com.flux_applied.ModConfig;
 import com.flux_applied.ae2.FluxStack;
 import com.flux_applied.ae2.FluxStorageChannel;
+import com.flux_applied.util.EnergyTransferHelper;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -51,7 +53,7 @@ public class PartEnergyProvider extends PartBasicState implements IGridTickable,
     public static final IPartModel MODELS_OUTPUT = new PartModel(MODEL_OUTPUT);
 
     private static final long MAX_ENERGY = Long.MAX_VALUE;
-    private static final int DEFAULT_MAX_TRANSFER = Integer.MAX_VALUE;
+    private static final long DEFAULT_MAX_TRANSFER = ModConfig.getEnergyPortTransferRate();
 
     // IC2 conversion: 1 EU = 4 FE
     private static final double FE_PER_EU = 4.0;
@@ -365,8 +367,8 @@ public class PartEnergyProvider extends PartBasicState implements IGridTickable,
                     long availableFE = available != null ? available.getStackSize() : 0;
                     if (availableFE <= 0) return;
 
-                    int toTransfer = (int) Math.min(availableFE, maxTransfer);
-                    int received = neighborStorage.receiveEnergy(toTransfer, false);
+                    long toTransfer = Math.min(availableFE, maxTransfer);
+                    long received = EnergyTransferHelper.receive(neighborStorage, toTransfer);
                     if (received > 0) {
                         storage.getInventory(FluxStorageChannel.INSTANCE)
                                 .extractItems(new FluxStack(received), Actionable.MODULATE, actionSource);

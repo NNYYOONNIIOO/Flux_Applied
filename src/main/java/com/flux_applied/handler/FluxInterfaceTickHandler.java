@@ -11,6 +11,7 @@ import appeng.tile.networking.TileCableBus;
 import com.flux_applied.ModConfig;
 import com.flux_applied.item.ItemProviderCard;
 import com.flux_applied.integration.MekanismCeuAeUpgradeIntegration;
+import com.flux_applied.util.EnergyTransferHelper;
 import com.flux_applied.util.ProviderCardHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -121,14 +122,14 @@ public class FluxInterfaceTickHandler {
         IEnergyStorage neighborStorage = neighborTE.getCapability(CapabilityEnergy.ENERGY, facing.getOpposite());
         if (neighborStorage == null || !neighborStorage.canReceive()) return;
 
-        int maxExtract = neighborStorage.receiveEnergy(Integer.MAX_VALUE, true);
-        if (maxExtract <= 0) return;
+        long maxTransfer = ModConfig.getEnergyPortTransferRate();
+        if (maxTransfer <= 0) return;
 
-        long available = ProviderCardHelper.extractEnergy(part, maxExtract, true);
+        long available = ProviderCardHelper.extractEnergy(part, maxTransfer, true);
         if (available <= 0) return;
 
-        int toTransfer = (int) Math.min(available, maxExtract);
-        int accepted = neighborStorage.receiveEnergy(toTransfer, false);
+        long toTransfer = Math.min(available, maxTransfer);
+        long accepted = EnergyTransferHelper.receive(neighborStorage, toTransfer);
         if (accepted > 0) {
             ProviderCardHelper.extractEnergy(part, accepted, false);
         }
@@ -139,15 +140,15 @@ public class FluxInterfaceTickHandler {
         IEnergyStorage neighborStorage = neighborTE.getCapability(CapabilityEnergy.ENERGY, facing.getOpposite());
         if (neighborStorage == null || !neighborStorage.canExtract()) return;
 
-        int maxExtract = neighborStorage.extractEnergy(Integer.MAX_VALUE, true);
-        if (maxExtract <= 0) return;
+        long maxTransfer = ModConfig.getEnergyPortTransferRate();
+        if (maxTransfer <= 0) return;
 
-        long notInserted = ProviderCardHelper.injectEnergy(part, maxExtract, true);
-        long canAccept = maxExtract - notInserted;
+        long notInserted = ProviderCardHelper.injectEnergy(part, maxTransfer, true);
+        long canAccept = maxTransfer - notInserted;
         if (canAccept <= 0) return;
 
-        int toPull = (int) Math.min(maxExtract, canAccept);
-        int pulled = neighborStorage.extractEnergy(toPull, false);
+        long toPull = Math.min(maxTransfer, canAccept);
+        long pulled = EnergyTransferHelper.extract(neighborStorage, toPull);
         if (pulled > 0) {
             ProviderCardHelper.injectEnergy(part, pulled, false);
         }
@@ -158,7 +159,7 @@ public class FluxInterfaceTickHandler {
         IEnergyStorage neighborStorage = neighborTE.getCapability(CapabilityEnergy.ENERGY, facing.getOpposite());
         if (neighborStorage == null || !neighborStorage.canReceive()) return;
 
-        int maxTransfer = neighborStorage.receiveEnergy(Integer.MAX_VALUE, true);
+        long maxTransfer = ModConfig.getEnergyPortTransferRate();
         if (maxTransfer <= 0) return;
 
         // Extract from network via the wrapper logic
@@ -176,8 +177,8 @@ public class FluxInterfaceTickHandler {
                     .extractItems(request, appeng.api.config.Actionable.SIMULATE, source);
             if (extracted == null || extracted.getStackSize() <= 0) return;
 
-            int toTransfer = (int) Math.min(extracted.getStackSize(), maxTransfer);
-            int accepted = neighborStorage.receiveEnergy(toTransfer, false);
+            long toTransfer = Math.min(extracted.getStackSize(), maxTransfer);
+            long accepted = EnergyTransferHelper.receive(neighborStorage, toTransfer);
             if (accepted > 0) {
                 com.flux_applied.ae2.FluxStack realRequest = new com.flux_applied.ae2.FluxStack(accepted);
                 storage.getInventory(com.flux_applied.ae2.FluxStorageChannel.INSTANCE)
@@ -191,8 +192,8 @@ public class FluxInterfaceTickHandler {
         IEnergyStorage neighborStorage = neighborTE.getCapability(CapabilityEnergy.ENERGY, facing.getOpposite());
         if (neighborStorage == null || !neighborStorage.canExtract()) return;
 
-        int maxExtract = neighborStorage.extractEnergy(Integer.MAX_VALUE, true);
-        if (maxExtract <= 0) return;
+        long maxTransfer = ModConfig.getEnergyPortTransferRate();
+        if (maxTransfer <= 0) return;
 
         try {
             IGridNode node = actionHost.getActionableNode();
@@ -203,15 +204,15 @@ public class FluxInterfaceTickHandler {
             if (storage == null) return;
 
             appeng.me.helpers.MachineSource source = new appeng.me.helpers.MachineSource(actionHost);
-            com.flux_applied.ae2.FluxStack toInsert = new com.flux_applied.ae2.FluxStack(maxExtract);
+            com.flux_applied.ae2.FluxStack toInsert = new com.flux_applied.ae2.FluxStack(maxTransfer);
             com.flux_applied.ae2.FluxStack remaining = storage.getInventory(com.flux_applied.ae2.FluxStorageChannel.INSTANCE)
                     .injectItems(toInsert, appeng.api.config.Actionable.SIMULATE, source);
 
-            long canAccept = remaining != null ? maxExtract - remaining.getStackSize() : maxExtract;
+            long canAccept = remaining != null ? maxTransfer - remaining.getStackSize() : maxTransfer;
             if (canAccept <= 0) return;
 
-            int toPull = (int) Math.min(maxExtract, canAccept);
-            int pulled = neighborStorage.extractEnergy(toPull, false);
+            long toPull = Math.min(maxTransfer, canAccept);
+            long pulled = EnergyTransferHelper.extract(neighborStorage, toPull);
             if (pulled > 0) {
                 com.flux_applied.ae2.FluxStack realInsert = new com.flux_applied.ae2.FluxStack(pulled);
                 storage.getInventory(com.flux_applied.ae2.FluxStorageChannel.INSTANCE)

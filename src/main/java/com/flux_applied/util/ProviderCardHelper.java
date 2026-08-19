@@ -21,8 +21,14 @@ import net.minecraftforge.items.wrapper.CombinedInvWrapper;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 public class ProviderCardHelper {
+
+    private static final boolean MEKENG_LOADED = Loader.isModLoaded("mekeng");
+    private static final Map<Object, Map<String, IItemHandler>> REFLECTIVE_INVENTORY_CACHE = new WeakHashMap<>();
 
     @Nullable
     public static ItemStack findProviderCard(IPart part) {
@@ -32,7 +38,7 @@ public class ProviderCardHelper {
         if (card != null) return card;
         card = findCardInInventory(getFluidUpgradeInventory(part));
         if (card != null) return card;
-        if (Loader.isModLoaded("mekeng")) return findCardInInventory(getGasUpgradeInventory(part));
+        if (MEKENG_LOADED) return findCardInInventory(getGasUpgradeInventory(part));
         return null;
     }
 
@@ -65,7 +71,7 @@ public class ProviderCardHelper {
     }
 
     private static IItemHandler getGasUpgradeInventory(IPart part) {
-        if (!Loader.isModLoaded("mekeng")) return null;
+        if (!MEKENG_LOADED) return null;
         String className = part.getClass().getName();
         if (className.contains("PartTrioInterface")) {
             IItemHandler inventory = getInventoryByReflection(part, "gas_upgrades");
@@ -76,19 +82,32 @@ public class ProviderCardHelper {
     }
 
     private static IItemHandler getInventoryByReflection(Object object, String name) {
+        if (object == null) return null;
+        Map<String, IItemHandler> cached = REFLECTIVE_INVENTORY_CACHE.get(object);
+        if (cached != null && cached.containsKey(name)) {
+            return cached.get(name);
+        }
+
+        IItemHandler inventory = null;
         try {
             Method m = ReflectionCache.getMethod(object.getClass(), "getInventoryByName", String.class);
-            return (IItemHandler) ReflectionCache.invokeMethod(m, object, name);
+            inventory = (IItemHandler) ReflectionCache.invokeMethod(m, object, name);
         } catch (Exception ignored) {
-            return null;
         }
+
+        if (cached == null) {
+            cached = new HashMap<>();
+            REFLECTIVE_INVENTORY_CACHE.put(object, cached);
+        }
+        cached.put(name, inventory);
+        return inventory;
     }
 
     @Nullable
     public static IItemHandler getUpgradeInventory(IPart part) {
         IItemHandler item = getItemUpgradeInventory(part);
         IItemHandler fluid = getFluidUpgradeInventory(part);
-        IItemHandler gas = Loader.isModLoaded("mekeng") ? getGasUpgradeInventory(part) : null;
+        IItemHandler gas = MEKENG_LOADED ? getGasUpgradeInventory(part) : null;
         if (item instanceof IItemHandlerModifiable && fluid instanceof IItemHandlerModifiable) {
             return gas instanceof IItemHandlerModifiable
                     ? new CombinedInvWrapper((IItemHandlerModifiable) item, (IItemHandlerModifiable) fluid, (IItemHandlerModifiable) gas)
@@ -110,7 +129,7 @@ public class ProviderCardHelper {
             if (card != null) return card;
             card = findCardInInventory(getInventoryByReflection(te, "fluid_upgrades"));
             if (card != null) return card;
-            if (Loader.isModLoaded("mekeng")) return findCardInInventory(getInventoryByReflection(te, "gas_upgrades"));
+            if (MEKENG_LOADED) return findCardInInventory(getInventoryByReflection(te, "gas_upgrades"));
             return null;
         }
         if (name.contains("TileGasInterface")) return findCardInInventory(getInventoryByReflection(te, "upgrades"));
@@ -127,7 +146,7 @@ public class ProviderCardHelper {
             if (name.contains("TileDualInterface") || name.contains("TileTrioInterface")) {
                 IItemHandler item = getInventoryByReflection(te, "item_upgrades");
                 IItemHandler fluid = getInventoryByReflection(te, "fluid_upgrades");
-                IItemHandler gas = Loader.isModLoaded("mekeng") ? getInventoryByReflection(te, "gas_upgrades") : null;
+                IItemHandler gas = MEKENG_LOADED ? getInventoryByReflection(te, "gas_upgrades") : null;
                 if (item != null) return item;
                 if (fluid != null) return fluid;
                 if (gas != null) return gas;
