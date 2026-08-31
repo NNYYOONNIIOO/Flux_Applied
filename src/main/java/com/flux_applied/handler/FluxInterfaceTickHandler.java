@@ -148,7 +148,12 @@ public class FluxInterfaceTickHandler {
 
     private void refreshActiveInterfaces(World world) {
         for (TileEntity te : this.interfaceCandidates) {
-            if (te == null || te.isInvalid() || te.getWorld() != world || !world.isBlockLoaded(te.getPos())) {
+            if (te == null || te.isInvalid() || te.getWorld() == null) {
+                this.activeInterfaceCandidates.remove(te);
+                continue;
+            }
+            if (te.getWorld() != world) continue;
+            if (!world.isBlockLoaded(te.getPos())) {
                 this.activeInterfaceCandidates.remove(te);
                 continue;
             }

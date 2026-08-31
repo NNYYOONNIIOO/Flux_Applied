@@ -14,9 +14,10 @@ apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
 repositories {
+    mavenCentral()
     maven { url = 'https://cursemaven.com' }
-    maven { url = 'https://maven.cleanroommc.com' }
     maven { url = 'https://repo.spongepowered.org/maven' }
+    maven { url = 'https://maven.cleanroommc.com' }
     maven { url = 'https://maven.tterrag.com/' }
     maven { url = "https://maven.k-4u.nl/" }
     flatDir {
@@ -71,7 +72,13 @@ dependencies {
 
     // Mixin support
     implementation ('zone.rong:mixinbooter:10.7') { transitive = false }
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5'
+    annotationProcessor 'com.google.code.gson:gson:2.8.5'
+    annotationProcessor 'com.google.guava:guava:21.0'
+    annotationProcessor 'org.ow2.asm:asm:9.2'
+    annotationProcessor 'org.ow2.asm:asm-tree:9.2'
+    annotationProcessor 'org.ow2.asm:asm-util:9.2'
+    annotationProcessor 'org.ow2.asm:asm-analysis:9.2'
 }
 
 tasks.withType(JavaCompile) {

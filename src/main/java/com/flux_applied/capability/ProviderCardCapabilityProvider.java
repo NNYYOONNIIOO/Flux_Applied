@@ -21,6 +21,7 @@ import net.minecraftforge.energy.CapabilityEnergy;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.EnumMap;
 
 /**
  * Dynamically provides CapabilityEnergy for interfaces with Provider Cards.
@@ -29,7 +30,13 @@ import javax.annotation.Nullable;
  */
 public class ProviderCardCapabilityProvider implements ICapabilityProvider {
 
+    private static final long CARD_CACHE_TICKS = 20L;
+
     private final TileEntity te;
+    private final EnumMap<EnumFacing, ItemStack> panelCards = new EnumMap<>(EnumFacing.class);
+    private ItemStack blockCard = ItemStack.EMPTY;
+    private long cardCacheTick = Long.MIN_VALUE;
+    private boolean cardCacheValid;
 
     public ProviderCardCapabilityProvider(TileEntity te) {
         this.te = te;
@@ -44,19 +51,15 @@ public class ProviderCardCapabilityProvider implements ICapabilityProvider {
             // Panel form: TileCableBus
             if (te instanceof TileCableBus) {
                 if (facing == null) return false;
-                IPart part = ((IPartHost) te).getPart(AEPartLocation.fromFacing(facing));
-                if (part == null || !ProviderCardHelper.isInterfacePart(part)) return false;
-                return ProviderCardHelper.findProviderCard(part) != null;
+                return getProviderCard(facing) != null;
             }
 
             // Block form: any interface TE that has a provider card
-            ItemStack card = ProviderCardHelper.findProviderCardInBlockTE(te);
-            if (card != null) return true;
+            return getProviderCard(null) != null;
         } catch (Exception e) {
             return false;
         }
 
-        return false;
     }
 
     @Override
@@ -68,7 +71,7 @@ public class ProviderCardCapabilityProvider implements ICapabilityProvider {
             // Panel form
             if (te instanceof TileCableBus) {
                 IPart part = ((IPartHost) te).getPart(AEPartLocation.fromFacing(facing));
-                ItemStack card = ProviderCardHelper.findProviderCard(part);
+                ItemStack card = getProviderCard(facing);
                 if (card != null) {
                     int mode = ItemProviderCard.getMode(card);
                     return CapabilityEnergy.ENERGY.cast(new InterfaceEnergyWrapper(part, mode));
@@ -84,5 +87,51 @@ public class ProviderCardCapabilityProvider implements ICapabilityProvider {
         }
 
         return null;
+    }
+
+    /**
+     * Capability lookups can happen many times per tick for a cable bus, even
+     * when no Flux Applied card is installed. Cache the negative lookup as
+     * well as the positive one and allow at most a one-second refresh delay
+     * after a card is inserted or removed.
+     */
+    @Nullable
+    private ItemStack getProviderCard(@Nullable EnumFacing facing) {
+        long now = this.te.getWorld() == null ? Long.MIN_VALUE : this.te.getWorld().getTotalWorldTime();
+        if (!this.cardCacheValid || now == Long.MIN_VALUE
+                || now < this.cardCacheTick || now - this.cardCacheTick >= CARD_CACHE_TICKS) {
+            refreshCardCache(now);
+        }
+
+        if (this.te instanceof TileCableBus) {
+            return facing == null ? null : this.panelCards.get(facing);
+        }
+        return this.blockCard.isEmpty() ? null : this.blockCard;
+    }
+
+    private void refreshCardCache(long now) {
+        this.panelCards.clear();
+        this.blockCard = ItemStack.EMPTY;
+
+        if (this.te instanceof TileCableBus) {
+            IPartHost partHost = (IPartHost) this.te;
+            for (EnumFacing facing : EnumFacing.values()) {
+                IPart part = partHost.getPart(AEPartLocation.fromFacing(facing));
+                if (part != null && ProviderCardHelper.isInterfacePart(part)) {
+                    ItemStack card = ProviderCardHelper.findProviderCard(part);
+                    if (card != null) {
+                        this.panelCards.put(facing, card);
+                    }
+                }
+            }
+        } else {
+            ItemStack card = ProviderCardHelper.findProviderCardInBlockTE(this.te);
+            if (card != null) {
+                this.blockCard = card;
+            }
+        }
+
+        this.cardCacheTick = now;
+        this.cardCacheValid = true;
     }
 }
