@@ -25,7 +25,7 @@ repositories {
     }
 }
 
-version = '1.2.3'
+version = '1.2.4'
 group = 'com.flux_applied'
 archivesBaseName = 'flux_applied'
 
