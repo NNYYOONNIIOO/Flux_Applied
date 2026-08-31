@@ -22,6 +22,9 @@ import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
+import java.util.Map;
+import java.util.WeakHashMap;
+
 /**
  * Processes one interface from its own AE2 grid tick callback.
  *
@@ -34,8 +37,23 @@ public final class FluxInterfaceGridTickHandler {
 
     private final MekanismCeuAeUpgradeIntegration mekanismIntegration =
             new MekanismCeuAeUpgradeIntegration();
+    private final Map<Object, ItemStack> cardCache = new WeakHashMap<>();
+    private final Map<Object, Boolean> cardCacheKnown = new WeakHashMap<>();
 
     private FluxInterfaceGridTickHandler() {
+    }
+
+    /**
+     * Inventory mixins call this only when an upgrade slot changes. A negative
+     * result is cached too, so normal interfaces do not rescan their upgrade
+     * inventories on every AE2 grid tick.
+     */
+    public void invalidateCardCache(Object target) {
+        if (target == null) {
+            return;
+        }
+        this.cardCacheKnown.remove(target);
+        this.cardCache.remove(target);
     }
 
     public void onTileEntityTick(TileEntity tile) {
@@ -53,7 +71,7 @@ public final class FluxInterfaceGridTickHandler {
             return;
         }
 
-        ItemStack card = ProviderCardHelper.findProviderCard(part);
+        ItemStack card = getCachedCard(part);
         if (card == null) {
             return;
         }
@@ -90,7 +108,7 @@ public final class FluxInterfaceGridTickHandler {
     }
 
     private void processBlockInterface(TileEntity tile) {
-        ItemStack card = ProviderCardHelper.findProviderCardInBlockTE(tile);
+        ItemStack card = getCachedCard(tile);
         if (card == null || !(tile instanceof IActionHost)) {
             return;
         }
@@ -120,6 +138,28 @@ public final class FluxInterfaceGridTickHandler {
         return className.contains("TileDualInterface")
                 || className.contains("TileTrioInterface")
                 || className.contains("TileGasInterface");
+    }
+
+    private ItemStack getCachedCard(Object target) {
+        if (target == null) {
+            return null;
+        }
+        if (this.cardCacheKnown.containsKey(target)) {
+            return this.cardCache.get(target);
+        }
+
+        ItemStack card = null;
+        if (target instanceof IPart) {
+            card = ProviderCardHelper.findProviderCard((IPart) target);
+        } else if (target instanceof TileEntity) {
+            card = ProviderCardHelper.findProviderCardInBlockTE((TileEntity) target);
+        }
+
+        this.cardCacheKnown.put(target, Boolean.TRUE);
+        if (card != null) {
+            this.cardCache.put(target, card);
+        }
+        return card;
     }
 
     private boolean isActive(IGridNode node) {
