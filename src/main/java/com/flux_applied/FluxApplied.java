@@ -164,7 +164,7 @@ public class FluxApplied implements ILateMixinLoader
         providerCard = new ItemProviderCard();
         UpgradeModuleRegistration.register(providerCard, 1);
 
-        MinecraftForge.EVENT_BUS.register(new FluxInterfaceTickHandler());
+        MinecraftForge.EVENT_BUS.register(FluxInterfaceTickHandler.INSTANCE);
         new FluxEventHandler();
 
         AEApi.instance().registries().partModels().registerModels(
@@ -344,6 +344,12 @@ public class FluxApplied implements ILateMixinLoader
         configs.add("flux_applied.mixins.json");
         if (Loader.isModLoaded("ic2")) {
             configs.add("flux_applied.mixins_ic2.json");
+        }
+        if (Loader.isModLoaded("ae2fc")) {
+            configs.add("flux_applied.ae2fc.mixins.json");
+        }
+        if (Loader.isModLoaded("mekeng")) {
+            configs.add("flux_applied.mekeng.mixins.json");
         }
         return configs;
     }
