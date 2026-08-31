@@ -17,33 +17,61 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 public class FluxInterfaceTickHandler {
 
-    private int tickCounter = 0;
+    private static final long CARD_SCAN_INTERVAL = 20L;
+
+    /**
+     * Keep only interface-shaped tile entities in the tick path. Scanning every
+     * loaded tile entity once per world tick caused a noticeable cost even when
+     * no Flux Applied card was installed anywhere.
+     */
+    private final Set<TileEntity> interfaceCandidates =
+            Collections.newSetFromMap(new WeakHashMap<TileEntity, Boolean>());
+    private final Set<TileEntity> activeInterfaceCandidates =
+            Collections.newSetFromMap(new WeakHashMap<TileEntity, Boolean>());
     private final MekanismCeuAeUpgradeIntegration mekanismCeuAeUpgradeIntegration = new MekanismCeuAeUpgradeIntegration();
+
+    @SubscribeEvent
+    public void onAttachCapabilities(AttachCapabilitiesEvent<TileEntity> event) {
+        TileEntity tile = event.getObject();
+        if (tile != null && (tile instanceof TileCableBus || isBlockFormInterface(tile))) {
+            this.interfaceCandidates.add(tile);
+        }
+
+        // Mekanism CEU AE Upgrade machines are tracked at load time as well;
+        // do not rescan the complete loaded-tile list every tick just to find them.
+        this.mekanismCeuAeUpgradeIntegration.onTileEntityAttached(tile);
+    }
 
     @SubscribeEvent
     public void onWorldTick(TickEvent.WorldTickEvent event) {
         if (event.side.isClient() || event.phase != TickEvent.Phase.END) return;
 
-        tickCounter++;
-        if (tickCounter < 1) return;
-        tickCounter = 0;
-
         World world = event.world;
         mekanismCeuAeUpgradeIntegration.onWorldTick(event);
 
-        List<TileEntity> tileEntities = new ArrayList<>(world.loadedTileEntityList);
-        for (TileEntity te : tileEntities) {
-            if (te.isInvalid()) continue;
+        // Card insertion/removal is uncommon compared with world ticks. Refresh
+        // the active set once per second, then keep the hot path limited to
+        // interfaces that are known to contain a Provider Card.
+        if (world.getTotalWorldTime() % CARD_SCAN_INTERVAL == 0L) {
+            refreshActiveInterfaces(world);
+        }
+
+        if (this.activeInterfaceCandidates.isEmpty()) return;
+
+        for (TileEntity te : this.activeInterfaceCandidates) {
+            if (te == null || te.isInvalid() || te.getWorld() != world || !world.isBlockLoaded(te.getPos())) continue;
 
             // Panel form: TileCableBus
             if (te instanceof TileCableBus) {
@@ -60,9 +88,10 @@ public class FluxInterfaceTickHandler {
 
                     int mode = ItemProviderCard.getMode(card);
 
-                    if (ProviderCardHelper.getGridNode(part) == null) continue;
+                    IGridNode node = ProviderCardHelper.getGridNode(part);
+                    if (node == null) continue;
                     try {
-                        if (ProviderCardHelper.getGridNode(part).getGrid() == null || !ProviderCardHelper.getGridNode(part).isActive()) continue;
+                        if (node.getGrid() == null || !node.isActive()) continue;
                     } catch (Exception e) {
                         continue;
                     }
@@ -113,6 +142,36 @@ public class FluxInterfaceTickHandler {
                         autoPullEnergyBlock((IActionHost) te, neighborTE, facing);
                     }
                 }
+            }
+        }
+    }
+
+    private void refreshActiveInterfaces(World world) {
+        for (TileEntity te : this.interfaceCandidates) {
+            if (te == null || te.isInvalid() || te.getWorld() != world || !world.isBlockLoaded(te.getPos())) {
+                this.activeInterfaceCandidates.remove(te);
+                continue;
+            }
+
+            boolean hasCard = false;
+            if (te instanceof TileCableBus) {
+                IPartHost partHost = (IPartHost) te;
+                for (EnumFacing facing : EnumFacing.values()) {
+                    IPart part = partHost.getPart(facing);
+                    if (part != null && ProviderCardHelper.isInterfacePart(part)
+                            && ProviderCardHelper.findProviderCard(part) != null) {
+                        hasCard = true;
+                        break;
+                    }
+                }
+            } else if (isBlockFormInterface(te)) {
+                hasCard = ProviderCardHelper.findProviderCardInBlockTE(te) != null;
+            }
+
+            if (hasCard) {
+                this.activeInterfaceCandidates.add(te);
+            } else {
+                this.activeInterfaceCandidates.remove(te);
             }
         }
     }
