@@ -37,7 +37,7 @@ import com.flux_applied.ae2.FluxCellHandler;
 import com.flux_applied.network.CPacketFluxContainerAction;
 import com.flux_applied.network.CPacketProviderCardCycle;
 import com.flux_applied.handler.FluxEventHandler;
-import com.flux_applied.handler.FluxInterfaceTickHandler;
+import com.flux_applied.handler.FluxInterfaceGridTickHandler;
 import nyonio.terminal_interaction_integration.api.ResourceRegistrationEvent;
 import nyonio.terminal_interaction_integration.api.UpgradeModuleRegistration;
 import appeng.api.AEApi;
@@ -164,7 +164,9 @@ public class FluxApplied implements ILateMixinLoader
         providerCard = new ItemProviderCard();
         UpgradeModuleRegistration.register(providerCard, 1);
 
-        MinecraftForge.EVENT_BUS.register(FluxInterfaceTickHandler.INSTANCE);
+        if (Loader.isModLoaded("mekceuaeupgrade")) {
+            MinecraftForge.EVENT_BUS.register(FluxInterfaceGridTickHandler.INSTANCE);
+        }
         new FluxEventHandler();
 
         AEApi.instance().registries().partModels().registerModels(
