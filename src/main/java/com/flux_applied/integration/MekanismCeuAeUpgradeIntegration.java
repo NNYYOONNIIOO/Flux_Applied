@@ -17,8 +17,10 @@ import net.minecraftforge.energy.IEnergyStorage;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -27,16 +29,18 @@ public class MekanismCeuAeUpgradeIntegration {
 
     private static final String UPGRADE_HOST = "mekceuaeupgrade.common.host.IAEUpgradeHost";
     private static final int SLEEP_TICKS = 100;
-    private static final long UPGRADE_CACHE_TICKS = 20L;
+    private static final int UPGRADE_SCAN_INTERVAL = 100;
     private final Set<TileEntity> candidates =
             Collections.newSetFromMap(new WeakHashMap<TileEntity, Boolean>());
+    private final Set<TileEntity> activeMachines =
+            Collections.newSetFromMap(new IdentityHashMap<TileEntity, Boolean>());
+    private final Map<TileEntity, IEnergyStorage> energyCache = new IdentityHashMap<>();
     private final Map<TileEntity, Long> nextQuery = new IdentityHashMap<>();
-    private final Map<TileEntity, UpgradeCache> upgradeCache = new IdentityHashMap<>();
     private Method hasAEUpgrade;
     private Class<?> upgradeHostClass;
-    private boolean initialized;
     private boolean integrationChecked;
     private boolean integrationAvailable;
+    private final Set<Integer> discoveredWorlds = new HashSet<>();
 
     /**
      * Register possible integration hosts when their tile entity is created.
@@ -54,14 +58,40 @@ public class MekanismCeuAeUpgradeIntegration {
         if (!isIntegrationAvailable()) return;
 
         long now = event.world.getTotalWorldTime();
-        for (TileEntity tile : this.candidates) {
-            if (tile == null || tile.isInvalid() || tile.getWorld() != event.world
+        if (now % UPGRADE_SCAN_INTERVAL == 0L) {
+            refreshActiveMachines(event, now);
+        }
+
+        if (this.activeMachines.isEmpty()) return;
+        for (TileEntity tile : new ArrayList<>(this.activeMachines)) {
+            if (tile == null) {
+                this.activeMachines.remove(null);
+                continue;
+            }
+            if (tile.getWorld() != event.world) continue;
+            if (tile.isInvalid()
                     || !event.world.isBlockLoaded(tile.getPos())
-                    || !(tile instanceof IActionHost) || !hasUpgrade(tile, now)) continue;
-            IEnergyStorage energy = findEnergy(tile);
+                    || !(tile instanceof IActionHost)) {
+                this.activeMachines.remove(tile);
+                this.energyCache.remove(tile);
+                this.nextQuery.remove(tile);
+                continue;
+            }
+
+            IEnergyStorage energy = this.energyCache.get(tile);
+            if (energy == null) {
+                energy = findEnergy(tile);
+                if (energy == null) continue;
+                this.energyCache.put(tile, energy);
+            }
             if (energy == null || energy.getEnergyStored() >= energy.getMaxEnergyStored()) continue;
 
             long stored = energy.getEnergyStored();
+            if (stored < 0) {
+                this.energyCache.remove(tile);
+                this.activeMachines.remove(tile);
+                continue;
+            }
             Long scheduled = nextQuery.get(tile);
             if (stored <= 0 && scheduled != null && now < scheduled) continue;
 
@@ -71,8 +101,55 @@ public class MekanismCeuAeUpgradeIntegration {
         }
         nextQuery.keySet().removeIf(tile -> tile == null || tile.isInvalid() || tile.getWorld() == null
                 || !tile.getWorld().isBlockLoaded(tile.getPos()));
-        upgradeCache.keySet().removeIf(tile -> tile == null || tile.isInvalid() || tile.getWorld() == null
-                || !tile.getWorld().isBlockLoaded(tile.getPos()));
+    }
+
+    private void refreshActiveMachines(TickEvent.WorldTickEvent event, long now) {
+        if (this.discoveredWorlds.add(event.world.provider.getDimension())) {
+            discoverLoadedMachines(event);
+        }
+
+        for (TileEntity tile : new ArrayList<>(this.candidates)) {
+            if (tile == null) {
+                this.candidates.remove(null);
+                continue;
+            }
+            if (tile.getWorld() != event.world) continue;
+            if (tile.isInvalid()
+                    || !event.world.isBlockLoaded(tile.getPos())
+                    || !(tile instanceof IActionHost)) {
+                this.candidates.remove(tile);
+                this.activeMachines.remove(tile);
+                this.energyCache.remove(tile);
+                this.nextQuery.remove(tile);
+                continue;
+            }
+
+            if (hasUpgrade(tile)) {
+                this.activeMachines.add(tile);
+            } else {
+                this.activeMachines.remove(tile);
+                this.energyCache.remove(tile);
+                this.nextQuery.remove(tile);
+            }
+        }
+
+        // Drop stale active entries even if the candidate weak reference has
+        // already been collected.
+        for (TileEntity tile : new ArrayList<>(this.activeMachines)) {
+            if (!this.candidates.contains(tile)) {
+                this.activeMachines.remove(tile);
+                this.energyCache.remove(tile);
+                this.nextQuery.remove(tile);
+            }
+        }
+    }
+
+    private void discoverLoadedMachines(TickEvent.WorldTickEvent event) {
+        for (TileEntity tile : new ArrayList<>(event.world.loadedTileEntityList)) {
+            if (this.upgradeHostClass.isInstance(tile)) {
+                this.candidates.add(tile);
+            }
+        }
     }
 
     private boolean isIntegrationAvailable() {
@@ -87,36 +164,17 @@ public class MekanismCeuAeUpgradeIntegration {
         try {
             upgradeHostClass = Class.forName(UPGRADE_HOST);
             hasAEUpgrade = upgradeHostClass.getMethod("hasAEUpgrade");
-            initialized = true;
             return true;
         } catch (Exception ignored) {
             return false;
         }
     }
 
-    private boolean hasUpgrade(TileEntity tile, long now) {
-        UpgradeCache cached = upgradeCache.get(tile);
-        if (cached != null && now < cached.nextCheck) {
-            return cached.hasUpgrade;
-        }
-
-        boolean result;
+    private boolean hasUpgrade(TileEntity tile) {
         try {
-            result = (Boolean) hasAEUpgrade.invoke(tile);
+            return (Boolean) hasAEUpgrade.invoke(tile);
         } catch (Exception ignored) {
-            result = false;
-        }
-        upgradeCache.put(tile, new UpgradeCache(result, now + UPGRADE_CACHE_TICKS));
-        return result;
-    }
-
-    private static final class UpgradeCache {
-        private final boolean hasUpgrade;
-        private final long nextCheck;
-
-        private UpgradeCache(boolean hasUpgrade, long nextCheck) {
-            this.hasUpgrade = hasUpgrade;
-            this.nextCheck = nextCheck;
+            return false;
         }
     }
 
