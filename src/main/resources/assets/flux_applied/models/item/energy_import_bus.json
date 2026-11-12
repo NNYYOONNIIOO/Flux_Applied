@@ -1,5 +1,5 @@
 {
-  "parent": "appliedenergistics2:item/part/part",
+  "parent": "appliedenergistics2:item/part_base",
   "textures": {
     "sides": "appliedenergistics2:part/import_bus_sides",
     "front": "flux_applied:block/energy_import_bus"
