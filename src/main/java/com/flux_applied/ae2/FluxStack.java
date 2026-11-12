@@ -1,156 +1,45 @@
 package com.flux_applied.ae2;
 
-import java.io.IOException;
-
-import io.netty.buffer.ByteBuf;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IAEStack;
-
 import com.flux_applied.item.ItemFluxPacket;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.PacketBuffer;
 
-public class FluxStack implements IAEStack<FluxStack> {
-
-    public static final FluxStack STATIC_STACK = new FluxStack(0);
-
-    private long stackSize;
-    private long countRequestable;
-    private boolean isCraftable;
-
-    public FluxStack(long amount) {
-        this.stackSize = amount;
-        this.countRequestable = 0;
-        this.isCraftable = false;
+public final class FluxStack implements IAEStack<FluxStack> {
+    private long size;
+    private long requestable;
+    private boolean craftable;
+    public FluxStack(long amount) { size = amount; }
+    public static long addSaturated(long a, long b) {
+        if (b > 0 && a > Long.MAX_VALUE - b) return Long.MAX_VALUE;
+        if (b < 0 && a < Long.MIN_VALUE - b) return Long.MIN_VALUE;
+        return a + b;
     }
-
-    @Override
-    public void add(FluxStack is) {
-        if (is != null) {
-            this.stackSize += is.stackSize;
-        }
+    @Override public void add(FluxStack other) {
+        if (other != null) { incStackSize(other.size); incCountRequestable(other.requestable); craftable |= other.craftable; }
     }
-
-    @Override
-    public long getStackSize() {
-        return this.stackSize;
-    }
-
-    @Override
-    public FluxStack setStackSize(long stackSize) {
-        this.stackSize = stackSize;
-        return this;
-    }
-
-    @Override
-    public long getCountRequestable() {
-        return this.countRequestable;
-    }
-
-    @Override
-    public FluxStack setCountRequestable(long countRequestable) {
-        this.countRequestable = countRequestable;
-        return this;
-    }
-
-    @Override
-    public boolean isCraftable() {
-        return this.isCraftable;
-    }
-
-    @Override
-    public FluxStack setCraftable(boolean isCraftable) {
-        this.isCraftable = isCraftable;
-        return this;
-    }
-
-    @Override
-    public FluxStack reset() {
-        this.stackSize = 0;
-        this.countRequestable = 0;
-        this.isCraftable = false;
-        return this;
-    }
-
-    @Override
-    public boolean isMeaningful() {
-        return this.stackSize != 0 || this.countRequestable != 0 || this.isCraftable;
-    }
-
-    @Override
-    public void incStackSize(long i) {
-        this.stackSize += i;
-    }
-
-    @Override
-    public void decStackSize(long i) {
-        this.stackSize -= i;
-    }
-
-    @Override
-    public void incCountRequestable(long i) {
-        this.countRequestable += i;
-    }
-
-    @Override
-    public void decCountRequestable(long i) {
-        this.countRequestable -= i;
-    }
-
-    @Override
-    public void writeToNBT(NBTTagCompound i) {
-        i.setLong("fe", this.stackSize);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof FluxStack) {
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public boolean fuzzyComparison(FluxStack other, FuzzyMode mode) {
-        return true;
-    }
-
-    @Override
-    public void writeToPacket(ByteBuf data) throws IOException {
-        data.writeLong(this.stackSize);
-    }
-
-    @Override
-    public FluxStack copy() {
-        FluxStack stack = new FluxStack(this.stackSize);
-        stack.setCountRequestable(this.countRequestable);
-        stack.setCraftable(this.isCraftable);
-        return stack;
-    }
-
-    @Override
-    public FluxStack empty() {
-        return new FluxStack(0);
-    }
-
-    @Override
-    public boolean isItem() {
-        return false;
-    }
-
-    @Override
-    public boolean isFluid() {
-        return false;
-    }
-
-    @Override
-    public IStorageChannel<FluxStack> getChannel() {
-        return FluxStorageChannel.INSTANCE;
-    }
-
-    @Override
-    public ItemStack asItemStackRepresentation() {
-        return ItemFluxPacket.create(this.stackSize);
-    }
+    @Override public long getStackSize() { return size; }
+    @Override public FluxStack setStackSize(long value) { size = value; return this; }
+    @Override public long getCountRequestable() { return requestable; }
+    @Override public FluxStack setCountRequestable(long value) { requestable = value; return this; }
+    @Override public boolean isCraftable() { return craftable; }
+    @Override public FluxStack setCraftable(boolean value) { craftable = value; return this; }
+    @Override public FluxStack reset() { size = 0; requestable = 0; craftable = false; return this; }
+    @Override public boolean isMeaningful() { return size != 0 || requestable != 0 || craftable; }
+    @Override public void incStackSize(long value) { size = addSaturated(size, value); }
+    @Override public void decStackSize(long value) { size = value == Long.MIN_VALUE ? Long.MAX_VALUE : addSaturated(size, -value); }
+    @Override public void incCountRequestable(long value) { requestable = addSaturated(requestable, value); }
+    @Override public void decCountRequestable(long value) { requestable = value == Long.MIN_VALUE ? Long.MAX_VALUE : addSaturated(requestable, -value); }
+    @Override public void writeToNBT(CompoundNBT tag) { tag.putLong("fe", size); }
+    @Override public void writeToPacket(PacketBuffer buffer) { buffer.writeLong(size); }
+    @Override public boolean equals(Object other) { return other instanceof FluxStack; }
+    @Override public int hashCode() { return 0xFE; }
+    @Override public boolean fuzzyComparison(FluxStack other, FuzzyMode mode) { return other != null; }
+    @Override public FluxStack copy() { return new FluxStack(size).setCountRequestable(requestable).setCraftable(craftable); }
+    @Override public FluxStack empty() { return new FluxStack(0); }
+    @Override public IStorageChannel<FluxStack> getChannel() { return FluxStorageChannel.INSTANCE; }
+    @Override public ItemStack asItemStackRepresentation() { return ItemFluxPacket.create(1); }
 }

@@ -18,12 +18,11 @@ import mcjty.theoneprobe.api.IProbeInfo;
 import mcjty.theoneprobe.api.IProbeInfoProvider;
 import mcjty.theoneprobe.api.NumberFormat;
 import mcjty.theoneprobe.api.ProbeMode;
-import mcjty.theoneprobe.config.Config;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 
 public class EnergyPortProbeProvider implements IProbeInfoProvider {
@@ -34,7 +33,7 @@ public class EnergyPortProbeProvider implements IProbeInfoProvider {
     }
 
     @Override
-    public void addProbeInfo(ProbeMode mode, IProbeInfo probeInfo, EntityPlayer player, World world, IBlockState blockState, IProbeHitData data) {
+    public void addProbeInfo(ProbeMode mode, IProbeInfo probeInfo, PlayerEntity player, World world, BlockState blockState, IProbeHitData data) {
         if (blockState.getBlock() instanceof BlockEnergyPort) {
             TileEntity te = world.getTileEntity(data.getPos());
             if (te instanceof TileEntityEnergyProvider) {
@@ -53,7 +52,7 @@ public class EnergyPortProbeProvider implements IProbeInfoProvider {
             TileEntity te = world.getTileEntity(data.getPos());
             if (te instanceof IPartHost) {
                 IPartHost host = (IPartHost) te;
-                Vec3d hitVec = data.getHitVec().subtract(data.getPos().getX(), data.getPos().getY(), data.getPos().getZ());
+                Vector3d hitVec = data.getHitVec().subtract(data.getPos().getX(), data.getPos().getY(), data.getPos().getZ());
                 SelectedPart sp = host.selectPart(hitVec);
                 IPart hitPart = sp.part;
                 if (hitPart instanceof PartEnergyProvider) {
@@ -62,9 +61,9 @@ public class EnergyPortProbeProvider implements IProbeInfoProvider {
                     probeInfo.progress(storedFE, Integer.MAX_VALUE,
                             probeInfo.defaultProgressStyle()
                                     .suffix("FE")
-                                    .filledColor(Config.rfbarFilledColor)
-                                    .alternateFilledColor(Config.rfbarAlternateFilledColor)
-                                    .borderColor(Config.rfbarBorderColor)
+                                    .filledColor(0xFFFFAA00)
+                                    .alternateFilledColor(0xFFFFCC55)
+                                    .borderColor(0xFF555555)
                                     .numberFormat(NumberFormat.COMPACT));
                     probeInfo.text("{*flux_applied.top.mode*}: " + getModeText(ep.getMode()));
                 } else if (hitPart != null && ProviderCardHelper.isInterfacePart(hitPart)) {
@@ -75,9 +74,9 @@ public class EnergyPortProbeProvider implements IProbeInfoProvider {
                         probeInfo.progress(storedFE, Integer.MAX_VALUE,
                                 probeInfo.defaultProgressStyle()
                                         .suffix("FE")
-                                        .filledColor(Config.rfbarFilledColor)
-                                        .alternateFilledColor(Config.rfbarAlternateFilledColor)
-                                        .borderColor(Config.rfbarBorderColor)
+                                        .filledColor(0xFFFFAA00)
+                                        .alternateFilledColor(0xFFFFCC55)
+                                        .borderColor(0xFF555555)
                                         .numberFormat(NumberFormat.COMPACT));
                         probeInfo.text("{*flux_applied.top.mode*}: " + getModeText(cardMode));
                     }

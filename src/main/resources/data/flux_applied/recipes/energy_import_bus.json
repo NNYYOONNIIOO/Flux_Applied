@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "   ",
+    "aba",
+    "cdc"
+  ],
+  "key": {
+    "a": {
+      "item": "minecraft:blaze_powder"
+    },
+    "b": {
+      "item": "appliedenergistics2:annihilation_core"
+    },
+    "c": {
+      "tag": "forge:ingots/iron"
+    },
+    "d": {
+      "item": "minecraft:sticky_piston"
+    }
+  },
+  "result": {
+    "item": "flux_applied:energy_import_bus",
+    "count": 1
+  }
+}

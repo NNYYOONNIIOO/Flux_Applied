@@ -1,6 +1,6 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "flux_applied:items/provider_card"
+    "layer0": "flux_applied:item/provider_card"
   }
 }

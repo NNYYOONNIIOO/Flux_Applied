@@ -12,28 +12,28 @@ import appeng.api.storage.IMEInventory;
 import appeng.api.util.AECableType;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.MachineSource;
-import appeng.parts.PartBasicState;
+import appeng.parts.BasicStatePart;
 import appeng.parts.PartModel;
 import appeng.util.SettingsFrom;
 import com.flux_applied.FluxApplied;
 import com.flux_applied.ModConfig;
 import com.flux_applied.ae2.FluxStack;
 import com.flux_applied.ae2.FluxStorageChannel;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-public class PartEnergyImportBus extends PartBasicState implements IGridTickable {
+public class PartEnergyImportBus extends FluxPart implements IGridTickable {
 
     private static final ResourceLocation MODEL_BASE = new ResourceLocation(FluxApplied.MODID, "part/energy_import_bus");
     private static final ResourceLocation MODEL_OFF = new ResourceLocation(FluxApplied.MODID, "part/energy_import_bus_off");
@@ -45,6 +45,9 @@ public class PartEnergyImportBus extends PartBasicState implements IGridTickable
 
     private final MachineSource actionSource;
     private long transferRate;
+    private final com.flux_applied.energy.NetworkEnergyStorage network = new com.flux_applied.energy.NetworkEnergyStorage(
+            () -> this, () -> 0, () -> getTile() != null && !getTile().isRemoved(), this::getTransferRate,
+            () -> getTile() == null || getTile().getWorld() == null ? 0 : getTile().getWorld().getGameTime());
 
     public PartEnergyImportBus(ItemStack is) {
         super(is);
@@ -65,31 +68,31 @@ public class PartEnergyImportBus extends PartBasicState implements IGridTickable
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound data) {
+    public void writeToNBT(CompoundNBT data) {
         super.writeToNBT(data);
-        data.setLong("TransferRate", transferRate);
+        data.putLong("TransferRate", transferRate);
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound data) {
+    public void readFromNBT(CompoundNBT data) {
         super.readFromNBT(data);
-        transferRate = data.hasKey("TransferRate")
+        transferRate = data.contains("TransferRate")
                 ? data.getLong("TransferRate")
                 : ModConfig.getEnergyImportBusInitialInputExtractRate();
         normalizeTransferRate();
     }
 
     @Override
-    protected NBTTagCompound downloadSettings(SettingsFrom from, NBTTagCompound output) {
+    protected CompoundNBT downloadSettings(SettingsFrom from, CompoundNBT output) {
         super.downloadSettings(from, output);
-        output.setLong("TransferRate", transferRate);
+        output.putLong("TransferRate", transferRate);
         return output;
     }
 
     @Override
-    public void uploadSettings(SettingsFrom from, NBTTagCompound compound, EntityPlayer player) {
+    public void uploadSettings(SettingsFrom from, CompoundNBT compound, PlayerEntity player) {
         super.uploadSettings(from, compound, player);
-        if (compound.hasKey("TransferRate")) {
+        if (compound.contains("TransferRate")) {
             transferRate = compound.getLong("TransferRate");
             normalizeTransferRate();
             getHost().markForSave();
@@ -117,8 +120,8 @@ public class PartEnergyImportBus extends PartBasicState implements IGridTickable
     }
 
     @Override
-    public boolean onPartActivate(EntityPlayer player, EnumHand hand, Vec3d pos) {
-        return false;
+    public boolean onPartActivate(PlayerEntity player, Hand hand, Vector3d pos) {
+        return useFluxMemoryCard(player, hand);
     }
 
     @Nonnull
@@ -162,47 +165,7 @@ public class PartEnergyImportBus extends PartBasicState implements IGridTickable
             return false;
         }
 
-        try {
-            IStorageGrid storage = getProxy().getStorage();
-            IMEInventory<FluxStack> inventory = storage.getInventory(FluxStorageChannel.INSTANCE);
-            if (inventory == null) {
-                return false;
-            }
-
-            long remaining = getTransferRate();
-            boolean worked = false;
-            while (remaining > 0) {
-                int request = (int) Math.min(remaining, Integer.MAX_VALUE);
-                int available = target.extractEnergy(request, true);
-                if (available <= 0) {
-                    break;
-                }
-
-                FluxStack simulatedRemainder = inventory.injectItems(
-                        new FluxStack(available), Actionable.SIMULATE, actionSource);
-                long insertable = available - getStackSize(simulatedRemainder);
-                if (insertable <= 0) {
-                    break;
-                }
-
-                int extracted = target.extractEnergy((int) Math.min(insertable, Integer.MAX_VALUE), false);
-                if (extracted <= 0) {
-                    break;
-                }
-
-                FluxStack remainder = inventory.injectItems(
-                        new FluxStack(extracted), Actionable.MODULATE, actionSource);
-                long inserted = extracted - getStackSize(remainder);
-                if (inserted > 0) {
-                    worked = true;
-                }
-                remaining -= extracted;
-
-            }
-            return worked;
-        } catch (GridAccessException ignored) {
-            return false;
-        }
+        return com.flux_applied.util.EnergyTransferHelper.push(target, network, getTransferRate()) > 0;
     }
 
     private long getStackSize(@Nullable FluxStack stack) {
@@ -218,7 +181,7 @@ public class PartEnergyImportBus extends PartBasicState implements IGridTickable
         TileEntity hostTile = getHost().getTile();
         BlockPos targetPos = hostTile.getPos().offset(getSide().getFacing());
         if (hostTile.getWorld() == null
-                || hostTile.getWorld().getChunkProvider().getLoadedChunk(targetPos.getX() >> 4, targetPos.getZ() >> 4) == null) {
+                || !hostTile.getWorld().isBlockLoaded(targetPos)) {
             return null;
         }
 
@@ -227,8 +190,8 @@ public class PartEnergyImportBus extends PartBasicState implements IGridTickable
             return null;
         }
 
-        EnumFacing facing = getSide().getFacing();
-        return target.getCapability(CapabilityEnergy.ENERGY, facing.getOpposite());
+        Direction facing = getSide().getFacing();
+        return target.getCapability(CapabilityEnergy.ENERGY, facing.getOpposite()).orElse(null);
     }
 
     @Nonnull

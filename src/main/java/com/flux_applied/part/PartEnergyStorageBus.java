@@ -9,30 +9,30 @@ import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.parts.IPartCollisionHelper;
 import appeng.api.parts.IPartModel;
-import appeng.api.storage.ICellContainer;
-import appeng.api.storage.ICellInventory;
+import appeng.api.storage.cells.ICellContainer;
+import appeng.api.storage.cells.ICellInventory;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IItemList;
 import appeng.api.util.AECableType;
 import appeng.api.util.AEPartLocation;
 import appeng.me.GridAccessException;
-import appeng.parts.PartBasicState;
+import appeng.parts.BasicStatePart;
 import appeng.parts.PartModel;
 import appeng.util.SettingsFrom;
 import com.flux_applied.FluxApplied;
 import com.flux_applied.ae2.FluxStack;
 import com.flux_applied.ae2.FluxStorageChannel;
-import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
 
@@ -42,7 +42,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-public class PartEnergyStorageBus extends PartBasicState implements IGridTickable, ICellContainer {
+public class PartEnergyStorageBus extends FluxPart implements IGridTickable, ICellContainer {
 
     public static final int MODE_INPUT = 0;
     public static final int MODE_OUTPUT = 1;
@@ -67,13 +67,13 @@ public class PartEnergyStorageBus extends PartBasicState implements IGridTickabl
     }
 
     @Override
-    public void writeToStream(ByteBuf data) throws IOException {
+    public void writeToStream(PacketBuffer data) throws IOException {
         super.writeToStream(data);
         data.writeByte((byte) mode);
     }
 
     @Override
-    public boolean readFromStream(ByteBuf data) throws IOException {
+    public boolean readFromStream(PacketBuffer data) throws IOException {
         boolean changed = super.readFromStream(data);
         int oldMode = mode;
         mode = data.readByte();
@@ -84,32 +84,32 @@ public class PartEnergyStorageBus extends PartBasicState implements IGridTickabl
     }
 
     @Override
-    public void writeToNBT(NBTTagCompound data) {
+    public void writeToNBT(CompoundNBT data) {
         super.writeToNBT(data);
-        data.setInteger("Mode", mode);
+        data.putInt("Mode", mode);
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound data) {
+    public void readFromNBT(CompoundNBT data) {
         super.readFromNBT(data);
-        mode = data.hasKey("Mode") ? data.getInteger("Mode") : MODE_BIDIRECTIONAL;
+        mode = data.contains("Mode") ? data.getInt("Mode") : MODE_BIDIRECTIONAL;
         if (mode < MODE_INPUT || mode > MODE_BIDIRECTIONAL) {
             mode = MODE_BIDIRECTIONAL;
         }
     }
 
     @Override
-    protected NBTTagCompound downloadSettings(SettingsFrom from, NBTTagCompound output) {
+    protected CompoundNBT downloadSettings(SettingsFrom from, CompoundNBT output) {
         super.downloadSettings(from, output);
-        output.setInteger("Mode", mode);
+        output.putInt("Mode", mode);
         return output;
     }
 
     @Override
-    public void uploadSettings(SettingsFrom from, NBTTagCompound compound, EntityPlayer player) {
+    public void uploadSettings(SettingsFrom from, CompoundNBT compound, PlayerEntity player) {
         super.uploadSettings(from, compound, player);
-        if (compound.hasKey("Mode")) {
-            mode = compound.getInteger("Mode");
+        if (compound.contains("Mode")) {
+            mode = compound.getInt("Mode");
             if (mode < MODE_INPUT || mode > MODE_BIDIRECTIONAL) {
                 mode = MODE_BIDIRECTIONAL;
             }
@@ -127,7 +127,8 @@ public class PartEnergyStorageBus extends PartBasicState implements IGridTickabl
     }
 
     @Override
-    public boolean onPartActivate(EntityPlayer player, EnumHand hand, Vec3d pos) {
+    public boolean onPartActivate(PlayerEntity player, Hand hand, Vector3d pos) {
+        if (useFluxMemoryCard(player, hand)) return true;
         if (!player.getHeldItem(hand).isEmpty()) {
             return false;
         }
@@ -137,13 +138,13 @@ public class PartEnergyStorageBus extends PartBasicState implements IGridTickabl
         return true;
     }
 
-    public void toggleMode(EntityPlayer player) {
+    public void toggleMode(PlayerEntity player) {
         mode = (mode + 1) % 3;
         lastReportedEnergy = -1L;
         saveChanges();
         getHost().markForUpdate();
         notifyCellArrayUpdate();
-        player.sendStatusMessage(new TextComponentTranslation(getModeMessageKey()), true);
+        player.sendStatusMessage(new TranslationTextComponent(getModeMessageKey()), true);
     }
 
     private String getModeMessageKey() {
@@ -201,12 +202,13 @@ public class PartEnergyStorageBus extends PartBasicState implements IGridTickabl
             return null;
         }
         TileEntity hostTile = getHost().getTile();
-        EnumFacing facing = getSide().getFacing();
+        Direction facing = getSide().getFacing();
+        if (hostTile.getWorld() == null || !hostTile.getWorld().isBlockLoaded(hostTile.getPos().offset(facing))) return null;
         TileEntity target = hostTile.getWorld().getTileEntity(hostTile.getPos().offset(facing));
         if (target == null) {
             return null;
         }
-        return target.getCapability(CapabilityEnergy.ENERGY, facing.getOpposite());
+        return target.getCapability(CapabilityEnergy.ENERGY, facing.getOpposite()).orElse(null);
     }
 
     private boolean canReadTarget() {
@@ -225,7 +227,9 @@ public class PartEnergyStorageBus extends PartBasicState implements IGridTickabl
         if (target == null || !target.canExtract()) {
             return 0L;
         }
-        return Math.max(0, target.extractEnergy(Integer.MAX_VALUE, true));
+        return target instanceof com.flux_applied.energy.ILongEnergyStorage
+                ? Math.max(0, ((com.flux_applied.energy.ILongEnergyStorage) target).getEnergyStoredLong())
+                : Math.max(0, target.getEnergyStored());
     }
 
     @Override
@@ -261,8 +265,7 @@ public class PartEnergyStorageBus extends PartBasicState implements IGridTickabl
             if (target == null || !target.canReceive()) {
                 return input;
             }
-            int amount = (int) Math.min(input.getStackSize(), Integer.MAX_VALUE);
-            int received = target.receiveEnergy(amount, action == Actionable.SIMULATE);
+            long received = com.flux_applied.util.EnergyTransferHelper.receive(target, input.getStackSize(), action == Actionable.SIMULATE);
             long remainder = input.getStackSize() - Math.max(0, received);
             return remainder > 0 ? new FluxStack(remainder) : null;
         }
@@ -276,8 +279,7 @@ public class PartEnergyStorageBus extends PartBasicState implements IGridTickabl
             if (target == null || !target.canExtract()) {
                 return null;
             }
-            int amount = (int) Math.min(request.getStackSize(), Integer.MAX_VALUE);
-            int extracted = target.extractEnergy(amount, action == Actionable.SIMULATE);
+            long extracted = com.flux_applied.util.EnergyTransferHelper.extract(target, request.getStackSize(), action == Actionable.SIMULATE);
             return extracted > 0 ? new FluxStack(extracted) : null;
         }
 

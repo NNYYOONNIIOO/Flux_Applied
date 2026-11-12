@@ -1,59 +1,47 @@
 package com.flux_applied.network;
 
+import appeng.container.slot.RestrictedInputSlot;
 import com.flux_applied.FluxApplied;
 import com.flux_applied.item.ItemProviderCard;
-import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.inventory.Slot;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.inventory.container.Container;
+import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.network.NetworkEvent;
+import java.util.function.Supplier;
 
-public class CPacketProviderCardCycle implements IMessage {
-
-    private int slotIndex;
-
-    public CPacketProviderCardCycle() {
-    }
-
-    public CPacketProviderCardCycle(int slotIndex) {
+public final class CPacketProviderCardCycle {
+    private final int windowId;
+    private final int slotIndex;
+    public CPacketProviderCardCycle(int windowId, int slotIndex) {
+        this.windowId = windowId;
         this.slotIndex = slotIndex;
     }
-
-    @Override
-    public void fromBytes(ByteBuf buf) {
-        this.slotIndex = buf.readInt();
+    public static void encode(CPacketProviderCardCycle packet, PacketBuffer buffer) {
+        buffer.writeVarInt(packet.windowId);
+        buffer.writeVarInt(packet.slotIndex);
     }
-
-    @Override
-    public void toBytes(ByteBuf buf) {
-        buf.writeInt(this.slotIndex);
+    public static CPacketProviderCardCycle decode(PacketBuffer buffer) {
+        return new CPacketProviderCardCycle(buffer.readVarInt(), buffer.readVarInt());
     }
-
-    public int getSlotIndex() {
-        return this.slotIndex;
-    }
-
-    public static class Handler implements IMessageHandler<CPacketProviderCardCycle, IMessage> {
-
-        @Override
-        public IMessage onMessage(CPacketProviderCardCycle message, MessageContext ctx) {
-            EntityPlayerMP player = ctx.getServerHandler().player;
-            player.getServerWorld().addScheduledTask(() -> {
-                if (player.openContainer == null) return;
-
-                if (message.getSlotIndex() < 0 || message.getSlotIndex() >= player.openContainer.inventorySlots.size()) return;
-
-                Slot slot = player.openContainer.getSlot(message.getSlotIndex());
-                if (slot == null) return;
-
-                ItemStack stackInSlot = slot.getStack();
-                if (stackInSlot.isEmpty() || stackInSlot.getItem() != FluxApplied.providerCard) return;
-
-                ItemProviderCard.cycleMode(stackInSlot);
-            });
-            return null;
-        }
+    public static void handle(CPacketProviderCardCycle packet, Supplier<NetworkEvent.Context> context) {
+        NetworkEvent.Context ctx = context.get();
+        ctx.enqueueWork(() -> {
+            ServerPlayerEntity player = ctx.getSender();
+            if (player == null) return;
+            Container container = player.openContainer;
+            if (container == null || container.windowId != packet.windowId || !container.canInteractWith(player)
+                    || packet.slotIndex < 0 || packet.slotIndex >= container.inventorySlots.size()) return;
+            Slot slot = container.getSlot(packet.slotIndex);
+            if (!(slot instanceof RestrictedInputSlot) || !slot.canTakeStack(player)) return;
+            ItemStack stack = slot.getStack();
+            if (stack.isEmpty() || stack.getItem() != FluxApplied.providerCard) return;
+            ItemProviderCard.cycleMode(stack);
+            slot.onSlotChanged();
+            container.detectAndSendChanges();
+            ItemProviderCard.sendModeMessage(player, ItemProviderCard.getMode(stack));
+        });
+        ctx.setPacketHandled(true);
     }
 }

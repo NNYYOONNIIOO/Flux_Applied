@@ -1,6 +1,6 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "flux_applied:items/fe_packet"
+    "layer0": "flux_applied:item/fe_packet"
   }
 }

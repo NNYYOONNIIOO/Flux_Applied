@@ -1,6 +1,6 @@
 {
   "parent": "block/cube_all",
   "textures": {
-    "all": "flux_applied:blocks/energy_provider_output"
+    "all": "flux_applied:block/energy_provider_output"
   }
 }

@@ -1,117 +1,57 @@
 buildscript {
-    repositories {
-        maven { url = 'https://maven.minecraftforge.net/' }
-        mavenCentral()
-        maven { url = 'https://cursemaven.com' }
-    }
-    dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:3.+'
-    }
+    repositories { maven { url = 'https://maven.minecraftforge.net' }; mavenCentral() }
+    dependencies { classpath 'net.minecraftforge.gradle:ForgeGradle:5.1.+' }
 }
-
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
-
-repositories {
-    mavenCentral()
-    maven { url = 'https://cursemaven.com' }
-    maven { url = 'https://repo.spongepowered.org/maven' }
-    maven { url = 'https://maven.cleanroommc.com' }
-    maven { url = 'https://maven.tterrag.com/' }
-    maven { url = "https://maven.k-4u.nl/" }
-    flatDir {
-        dirs 'libs'
-    }
-}
-
-version = '1.2.5'
+version = '1.2.5-1.16.5'
 group = 'com.flux_applied'
 archivesBaseName = 'flux_applied'
-
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
-
-sourceSets {
-    api
-}
-
-sourceSets.main.compileClasspath += sourceSets.api.output
-sourceSets.main.runtimeClasspath += sourceSets.api.output
-
+sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_8
 minecraft {
-    mappings channel: 'snapshot', version: '20171003-1.12'
-
+    mappings channel: 'snapshot', version: '20210309-1.16.5'
     runs {
         client {
             workingDirectory project.file('run')
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-            property 'forge.logging.console.level', 'debug'
+            property 'forge.logging.console.level', 'info'
+            args '--mixin.config', 'flux_applied.mixins.json'
+            mods { flux_applied { source sourceSets.main } }
         }
-
         server {
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-            property 'forge.logging.console.level', 'debug'
+            workingDirectory project.file('run-server')
+            property 'forge.logging.console.level', 'info'
+            args '--mixin.config', 'flux_applied.mixins.json', '--nogui'
+            mods { flux_applied { source sourceSets.main } }
         }
     }
 }
-
+repositories {
+    mavenCentral()
+    maven { url = 'https://modmaven.dev/'; content { includeGroup 'appeng' } }
+    maven { url = 'https://maven.k-4u.nl/' }
+    flatDir { dirs 'libs' }
+}
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2859'
-
-    implementation fg.deobf("curse.maven:ae2-extended-life-570458:6302098")
-
-    compileOnly fg.deobf("curse.maven:the-one-probe-community-edition-885670:7718301")
-
-    compileOnly files('libs/industrialcraft-2-2.8.222-ex112.jar')
-
-    compileOnly fg.deobf("curse.maven:ae2-fluid-crafting-rework-623955:5751930")
-    compileOnly fg.deobf("curse.maven:mekanism-energistics-1027681:5775101")
-    implementation fg.deobf("curse.maven:mekanismceu-ae-upgrade-1606943:8416019")
-
-    implementation files('libs/terminal_interaction_integration-1.0.jar')
-
-    // Mixin support
-    implementation ('zone.rong:mixinbooter:10.7') { transitive = false }
-    annotationProcessor 'org.spongepowered:mixin:0.8.5'
-    annotationProcessor 'com.google.code.gson:gson:2.8.5'
-    annotationProcessor 'com.google.guava:guava:21.0'
-    annotationProcessor 'org.ow2.asm:asm:9.2'
-    annotationProcessor 'org.ow2.asm:asm-tree:9.2'
-    annotationProcessor 'org.ow2.asm:asm-util:9.2'
-    annotationProcessor 'org.ow2.asm:asm-analysis:9.2'
+    minecraft 'net.minecraftforge:forge:1.16.5-36.2.42'
+    implementation fg.deobf('appeng:appliedenergistics2:8.4.7')
+    implementation fg.deobf('nyonio:terminal_interaction_integration:1.2.4-1.16.5')
+    compileOnly files('libs/theoneprobe-1.16-3.1.4-2-api.jar')
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-inline:3.12.4'
+    annotationProcessor 'org.spongepowered:mixin:0.8:processor'
 }
-
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-    options.annotationProcessorPath = configurations.annotationProcessor
-}
-
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+processResources { filesMatching('META-INF/mods.toml') { expand version: project.version } }
 jar {
     manifest {
-        attributes([
-            "Specification-Title": "flux_applied",
-            "Specification-Vendor": "xk",
-            "Specification-Version": "1",
-            "Implementation-Title": project.name,
-            "Implementation-Version": "${version}",
-            "Implementation-Vendor" :"xk",
-            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-            "MixinConfigs": "flux_applied.mixins.json",
-        ])
+        attributes(
+            'Specification-Title': 'flux_applied', 'Specification-Vendor': 'Nyonio',
+            'Specification-Version': '1', 'Implementation-Title': project.name,
+            'Implementation-Version': project.version, 'Implementation-Vendor': 'Nyonio',
+            'MixinConfigs': 'flux_applied.mixins.json'
+        )
     }
+    finalizedBy 'reobfJar'
 }
-
-jar.finalizedBy('reobfJar') 
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            artifact jar
-        }
-    }
-    repositories {
-        maven {
-            url "file:///${project.projectDir}/mcmodsrepo"
-        }
-    }
-}
+publishing { publications { mavenJava(MavenPublication) { artifact jar } } }

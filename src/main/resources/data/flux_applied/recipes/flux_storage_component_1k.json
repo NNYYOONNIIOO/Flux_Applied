@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "aba",
+    "bcb",
+    "aba"
+  ],
+  "key": {
+    "a": {
+      "item": "minecraft:blaze_powder"
+    },
+    "b": [
+      {
+        "item": "appliedenergistics2:certus_quartz_crystal"
+      },
+      {
+        "item": "appliedenergistics2:purified_certus_quartz_crystal"
+      }
+    ],
+    "c": {
+      "item": "appliedenergistics2:logic_processor"
+    }
+  },
+  "result": {
+    "item": "flux_applied:flux_storage_component_1k"
+  },
+  "conditions": [
+    {
+      "type": "flux_applied:config",
+      "option": "storage_components"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+modLoader="javafml"
+loaderVersion="[36,)"
+license="LGPL-3.0"
+[[mods]]
+modId="flux_applied"
+version="${version}"
+displayName="Flux Applied"
+authors="Nyonio"
+description='''Store Forge Energy in AE2 networks, interact with energy items in ME terminals, and transfer energy through ports, buses and interface cards.'''
+[[dependencies.flux_applied]]
+modId="forge"
+mandatory=true
+versionRange="[36.2.34,37)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.flux_applied]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.16.5,1.17)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.flux_applied]]
+modId="appliedenergistics2"
+mandatory=true
+versionRange="[8.4.7,9)"
+ordering="AFTER"
+side="BOTH"
+[[dependencies.flux_applied]]
+modId="terminal_interaction_integration"
+mandatory=true
+versionRange="[1.2.4-1.16.5,1.3)"
+ordering="AFTER"
+side="BOTH"

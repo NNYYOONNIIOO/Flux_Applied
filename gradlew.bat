@@ -1,4 +1,9 @@
 @if "%DEBUG%" == "" @echo off
+@rem Use an already installed project-local Gradle when the distribution host is unavailable.
+@if exist "%~dp0.gradle\tools\gradle-7.3.3\bin\gradle.bat" (
+  @call "%~dp0.gradle\tools\gradle-7.3.3\bin\gradle.bat" %*
+  @exit /b
+)
 @rem ##########################################################################
 @rem
 @rem  Gradle startup script for Windows

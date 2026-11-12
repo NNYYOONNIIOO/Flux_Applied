@@ -1,56 +1,21 @@
 package com.flux_applied.ae2;
-
-import java.io.IOException;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import io.netty.buffer.ByteBuf;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import appeng.api.storage.IStorageChannel;
 import appeng.api.storage.data.IItemList;
-
-public class FluxStorageChannel implements IStorageChannel<FluxStack> {
-
+import com.flux_applied.item.ItemFluxPacket;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.PacketBuffer;
+public final class FluxStorageChannel implements IStorageChannel<FluxStack> {
     public static final FluxStorageChannel INSTANCE = new FluxStorageChannel();
-
-    @Override
-    public int transferFactor() {
-        return 1000;
-    }
-
-    @Override
-    public int getUnitsPerByte() {
-        return 10000;  // 每字节存储 10000 FE
-    }
-
-    @Nonnull
-    @Override
-    public IItemList<FluxStack> createList() {
-        return new FluxList();
-    }
-
-    @Nullable
-    @Override
-    public FluxStack createStack(@Nonnull Object input) {
-        if (input instanceof FluxStack) {
-            return ((FluxStack) input).copy();
-        }
+    private FluxStorageChannel() {}
+    @Override public int transferFactor() { return 1000; }
+    @Override public int getUnitsPerByte() { return 10000; }
+    @Override public IItemList<FluxStack> createList() { return new FluxList(); }
+    @Override public FluxStack createStack(Object input) {
+        if (input instanceof FluxStack) return ((FluxStack) input).copy();
+        if (input instanceof ItemStack && ItemFluxPacket.isFluxPacket((ItemStack) input)) return new FluxStack(ItemFluxPacket.getFE((ItemStack) input));
         return null;
     }
-
-    @Nullable
-    @Override
-    public FluxStack readFromPacket(@Nonnull ByteBuf input) throws IOException {
-        long amount = input.readLong();
-        return new FluxStack(amount);
-    }
-
-    @Nullable
-    @Override
-    public FluxStack createFromNBT(@Nonnull NBTTagCompound nbt) {
-        long amount = nbt.getLong("fe");
-        return new FluxStack(amount);
-    }
+    @Override public FluxStack readFromPacket(PacketBuffer buffer) { return new FluxStack(buffer.readLong()); }
+    @Override public FluxStack createFromNBT(CompoundNBT tag) { return new FluxStack(tag.getLong("fe")); }
 }

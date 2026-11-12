@@ -1,97 +1,20 @@
 package com.flux_applied.ae2;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-
-import javax.annotation.Nonnull;
-
 import appeng.api.config.FuzzyMode;
 import appeng.api.storage.data.IItemList;
-
-public class FluxList implements IItemList<FluxStack> {
-
-    private long feAmount = 0;
-
-    @Override
-    public void add(FluxStack option) {
-        if (option != null) {
-            this.feAmount += option.getStackSize();
-        }
-    }
-
-    @Override
-    public void addStorage(FluxStack option) {
-        this.add(option);
-    }
-
-    @Override
-    public void addCrafting(FluxStack option) {
-    }
-
-    @Override
-    public void addRequestable(FluxStack option) {
-    }
-
-    @Override
-    public FluxStack findPrecise(FluxStack i) {
-        if (this.feAmount > 0) {
-            return new FluxStack(this.feAmount);
-        }
-        return null;
-    }
-
-    @Override
-    public Collection<FluxStack> findFuzzy(FluxStack input, FuzzyMode fuzzy) {
-        Collection<FluxStack> result = new ArrayList<>();
-        if (this.feAmount > 0) {
-            result.add(new FluxStack(this.feAmount));
-        }
-        return result;
-    }
-
-    @Override
-    public int size() {
-        return this.feAmount > 0 ? 1 : 0;
-    }
-
-    @Override
-    public FluxStack getFirstItem() {
-        if (this.feAmount > 0) {
-            return new FluxStack(this.feAmount);
-        }
-        return null;
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return this.feAmount <= 0;
-    }
-
-    @Override
-    public void resetStatus() {
-        this.feAmount = 0;
-    }
-
-    @Nonnull
-    @Override
-    public Iterator<FluxStack> iterator() {
-        return new Iterator<FluxStack>() {
-            private boolean hasNext = feAmount > 0;
-
-            @Override
-            public boolean hasNext() {
-                return hasNext;
-            }
-
-            @Override
-            public FluxStack next() {
-                if (hasNext) {
-                    hasNext = false;
-                    return new FluxStack(feAmount);
-                }
-                return null;
-            }
-        };
-    }
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+public final class FluxList implements IItemList<FluxStack> {
+    private final FluxStack stack = new FluxStack(0);
+    @Override public void add(FluxStack value) { stack.add(value); }
+    @Override public void addStorage(FluxStack value) { if (value != null) stack.incStackSize(value.getStackSize()); }
+    @Override public void addCrafting(FluxStack value) { if (value != null) stack.setCraftable(true); }
+    @Override public void addRequestable(FluxStack value) { if (value != null) stack.incCountRequestable(value.getCountRequestable()); }
+    @Override public FluxStack findPrecise(FluxStack value) { return value != null && stack.isMeaningful() ? stack : null; }
+    @Override public Collection<FluxStack> findFuzzy(FluxStack value, FuzzyMode mode) { return isEmpty() ? Collections.emptyList() : Collections.singletonList(stack); }
+    @Override public int size() { return stack.isMeaningful() ? 1 : 0; }
+    @Override public FluxStack getFirstItem() { return isEmpty() ? null : stack; }
+    @Override public boolean isEmpty() { return !stack.isMeaningful(); }
+    @Override public void resetStatus() { stack.reset(); }
+    @Override public Iterator<FluxStack> iterator() { return isEmpty() ? Collections.emptyIterator() : Collections.singletonList(stack).iterator(); }
 }
