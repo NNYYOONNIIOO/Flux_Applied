@@ -55,5 +55,5 @@
   "flux_applied.tooltip.card_mode_input": "Режим: только ввод",
   "flux_applied.tooltip.card_mode_output": "Режим: только вывод",
   "flux_applied.tooltip.card_mode_bidirectional": "Режим: двунаправленный",
-  "flux_applied.tooltip.card_devices": "Установите в ME-интерфейс или жидкостный интерфейс; Shift + ПКМ — установка, Shift + ПКМ пустой рукой — смена режима."
+  "flux_applied.tooltip.card_devices": "Установите в ME-интерфейс; Shift + ПКМ — установка, Shift + ПКМ пустой рукой — смена режима."
 }

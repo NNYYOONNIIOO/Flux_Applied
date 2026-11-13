@@ -8,11 +8,7 @@
     "MixinFluxInterfaceHost",
     "MixinFluxInterfaceGridTickTargets",
     "MixinFluxUpgradeChanges",
-    "MixinFluxItemInterfaceActivity",
-    "MixinFluxFluidInterfaceUpgrades",
-    "MixinFluxFluidInterfaceContainer",
-    "MixinFluxFluidPartDrops",
-    "MixinFluxFluidTileDrops"
+    "MixinFluxItemInterfaceActivity"
   ],
   "injectors": {
     "defaultRequire": 1

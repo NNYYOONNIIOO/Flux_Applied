@@ -55,5 +55,5 @@
   "flux_applied.tooltip.card_mode_input": "Mode: Input Only",
   "flux_applied.tooltip.card_mode_output": "Mode: Output Only",
   "flux_applied.tooltip.card_mode_bidirectional": "Mode: Bidirectional",
-  "flux_applied.tooltip.card_devices": "Install in ME or fluid interfaces; sneak-right-click to install or switch mode."
+  "flux_applied.tooltip.card_devices": "Install in ME interfaces; sneak-right-click to install or switch mode."
 }

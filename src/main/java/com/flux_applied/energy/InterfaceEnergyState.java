@@ -14,7 +14,6 @@ public final class InterfaceEnergyState {
     private final NetworkEnergyStorage storage;
     private ItemStack card = ItemStack.EMPTY;
     private boolean cardKnown;
-    private net.minecraftforge.items.ItemStackHandler fluidUpgrades;
 
     public InterfaceEnergyState(IActionHost host) {
         this.host = host;
@@ -28,17 +27,6 @@ public final class InterfaceEnergyState {
 
     public NetworkEnergyStorage storage() {
         return storage;
-    }
-
-    public net.minecraftforge.items.ItemStackHandler fluidUpgrades() {
-        if (fluidUpgrades == null) {
-            fluidUpgrades = new net.minecraftforge.items.ItemStackHandler(1) {
-                @Override public int getSlotLimit(int slot) { return 1; }
-                @Override public boolean isItemValid(int slot, ItemStack stack) { return stack.getItem() == FluxApplied.providerCard; }
-                @Override protected void onContentsChanged(int slot) { ProviderCardHelper.upgradesChanged(host); }
-            };
-        }
-        return fluidUpgrades;
     }
 
     public boolean hasCard() {

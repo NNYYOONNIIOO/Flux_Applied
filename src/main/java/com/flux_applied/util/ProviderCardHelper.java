@@ -2,7 +2,6 @@ package com.flux_applied.util;
 
 import appeng.api.networking.security.IActionHost;
 import appeng.api.parts.IPart;
-import appeng.fluids.helper.IFluidInterfaceHost;
 import appeng.helpers.IInterfaceHost;
 import appeng.me.GridAccessException;
 import appeng.me.helpers.IGridProxyable;
@@ -19,7 +18,7 @@ import java.util.EnumSet;
 public final class ProviderCardHelper {
     private ProviderCardHelper() {}
     public static boolean isInterface(Object host) {
-        return host instanceof IInterfaceHost || host instanceof IFluidInterfaceHost;
+        return host instanceof IInterfaceHost;
     }
     public static boolean isInterfacePart(IPart part) { return isInterface(part); }
     @Nullable public static InterfaceEnergyState state(Object host) {
@@ -27,7 +26,6 @@ public final class ProviderCardHelper {
     }
     @Nullable public static IItemHandler getUpgradeInventory(Object host) {
         if (host instanceof IInterfaceHost) return ((IInterfaceHost) host).getInterfaceDuality().getInventoryByName("upgrades");
-        if (host instanceof IFluidInterfaceHost) return ((IFluidInterfaceHost) host).getDualityFluidInterface().getInventoryByName("upgrades");
         return null;
     }
     public static ItemStack findProviderCard(Object host) {
@@ -42,12 +40,10 @@ public final class ProviderCardHelper {
     }
     @Nullable public static TileEntity tile(Object host) {
         if (host instanceof IInterfaceHost) return ((IInterfaceHost) host).getTileEntity();
-        if (host instanceof IFluidInterfaceHost) return ((IFluidInterfaceHost) host).getTileEntity();
         return null;
     }
     public static EnumSet<Direction> targets(Object host) {
         if (host instanceof IInterfaceHost) return ((IInterfaceHost) host).getTargets();
-        if (host instanceof IFluidInterfaceHost) return ((IFluidInterfaceHost) host).getTargets();
         return EnumSet.noneOf(Direction.class);
     }
     public static void upgradesChanged(Object host) {

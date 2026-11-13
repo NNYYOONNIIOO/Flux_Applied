@@ -3,15 +3,12 @@ package com.flux_applied.mixin;
 import appeng.api.networking.security.IActionHost;
 import appeng.tile.misc.InterfaceTileEntity;
 import appeng.parts.misc.InterfacePart;
-import appeng.fluids.tile.FluidInterfaceTileEntity;
-import appeng.fluids.parts.FluidInterfacePart;
 import com.flux_applied.energy.IFluxInterfaceHost;
 import com.flux_applied.energy.InterfaceEnergyState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
-@Mixin(value = { InterfaceTileEntity.class, InterfacePart.class,
-        FluidInterfaceTileEntity.class, FluidInterfacePart.class }, remap = false)
+@Mixin(value = { InterfaceTileEntity.class, InterfacePart.class }, remap = false)
 public abstract class MixinFluxInterfaceHost implements IFluxInterfaceHost {
     @Unique
     private InterfaceEnergyState flux_applied$state;
