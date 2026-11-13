@@ -21,7 +21,6 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkRegistry;
@@ -62,7 +61,6 @@ public final class FluxApplied {
         bus.addGenericListener(TileEntityType.class, this::registerTiles);
         bus.addListener(this::setup);
         bus.addListener(this::registerTerminalResources);
-        bus.addListener(this::enqueueIMC);
         Api.instance().storage().registerStorageChannel(FluxStorageChannel.class, FluxStorageChannel.INSTANCE);
         Api.instance().registries().partModels().registerModels(Arrays.asList(
                 id("part/energy_provider"), id("part/energy_provider_input"), id("part/energy_provider_output"),
@@ -85,9 +83,6 @@ public final class FluxApplied {
         });
     }
     private void registerTerminalResources(ResourceRegistrationEvent event) { event.register(new FluxResourceProvider()); }
-    private void enqueueIMC(InterModEnqueueEvent event) {
-        if (net.minecraftforge.fml.ModList.get().isLoaded("theoneprobe")) com.flux_applied.top.TOPHandler.register();
-    }
     public static ResourceLocation id(String path) { return new ResourceLocation(MODID, path); }
     public static Item.Properties properties() { return new Item.Properties().group(FluxAppliedTab.INSTANCE); }
     private static <T extends Item> T item(String name, T item) {

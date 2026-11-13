@@ -31,3 +31,9 @@ mandatory=true
 versionRange="[1.2.4-1.16.5,1.3)"
 ordering="AFTER"
 side="BOTH"
+[[dependencies.flux_applied]]
+modId="jade"
+mandatory=false
+versionRange="[2.8,3)"
+ordering="AFTER"
+side="BOTH"

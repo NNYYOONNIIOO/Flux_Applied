@@ -29,14 +29,14 @@ minecraft {
 repositories {
     mavenCentral()
     maven { url = 'https://modmaven.dev/'; content { includeGroup 'appeng' } }
-    maven { url = 'https://maven.k-4u.nl/' }
+    maven { url = 'https://cursemaven.com'; content { includeGroup 'curse.maven' } }
     flatDir { dirs 'libs' }
 }
 dependencies {
     minecraft 'net.minecraftforge:forge:1.16.5-36.2.42'
     implementation fg.deobf('appeng:appliedenergistics2:8.4.7')
     implementation fg.deobf('nyonio:terminal_interaction_integration:1.2.4-1.16.5')
-    compileOnly files('libs/theoneprobe-1.16-3.1.4-2-api.jar')
+    implementation fg.deobf("curse.maven:jade-324717:3910873")
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.mockito:mockito-inline:3.12.4'
     annotationProcessor 'org.spongepowered:mixin:0.8:processor'
