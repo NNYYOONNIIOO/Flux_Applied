@@ -35,7 +35,7 @@ import java.util.Optional;
 @Mod(FluxApplied.MODID)
 public final class FluxApplied {
     public static final String MODID = "flux_applied";
-    public static final String VERSION = "1.2.5-1.16.5";
+    public static final String VERSION = "1.2.6-1.16.5";
     private static final List<Item> ITEMS = new ArrayList<>();
     public static final SimpleChannel NETWORK = NetworkRegistry.newSimpleChannel(
             id("main"), () -> "1", "1"::equals, "1"::equals);

@@ -5,7 +5,7 @@ buildscript {
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
-version = '1.2.5-1.16.5'
+version = '1.2.6-1.16.5'
 group = 'com.flux_applied'
 archivesBaseName = 'flux_applied'
 sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_8
